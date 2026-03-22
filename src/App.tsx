@@ -10,7 +10,7 @@ type Tab = 'spectrum' | 'tuner'
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('spectrum')
-  const audio = useAudio(2048)
+  const audio = useAudio(4096)
 
   return (
     <div className="flex flex-col h-full max-w-5xl mx-auto">
