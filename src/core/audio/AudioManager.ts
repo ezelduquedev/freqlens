@@ -21,7 +21,7 @@ export class AudioManager {
   }
 
   public async initialize(): Promise<void> {
-    if (this.context) return
+    this.dispose()
 
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({
@@ -60,8 +60,12 @@ export class AudioManager {
       const eqManager = AdaptiveEQManager.getInstance()
       eqManager.connect(this.source, this.analyser)
       
-      // El analizador NO se conecta al destination (para evitar feedback si hay altavoces cerca)
-      // a menos que sea necesario para monitoreo.
+      // Para evitar que el navegador suspenda el sub-grafo (optimización de ahorro de CPU),
+      // conectamos el analizador a un nodo de ganancia silencioso (0) que va al destination.
+      const silentGain = this.context.createGain()
+      silentGain.gain.value = 0
+      this.analyser.connect(silentGain)
+      silentGain.connect(this.context.destination)
     } catch (error) {
       console.error('Failed to initialize AudioEngine:', error)
       throw error

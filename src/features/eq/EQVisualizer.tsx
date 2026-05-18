@@ -1,6 +1,9 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useRef, useState } from 'react'
 import { AdaptiveEQManager, type EQBand } from '../../core/audio/AdaptiveEQManager'
+import { GlassPanel } from '../../ui/GlassPanel'
+import { SectionTitle } from '../../ui/SectionTitle'
+import { Activity } from 'lucide-react'
 
 const freqToX = (freq: number, width: number, padding: number) => {
   const min = Math.log10(20)
@@ -85,11 +88,11 @@ export const EQVisualizer = () => {
       
       ctx.clearRect(0, 0, width, height)
 
-      // Draw Grid
-      ctx.strokeStyle = '#1e293b'
+      // Draw Grid Lines
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.02)'
       ctx.lineWidth = 1
-      ctx.font = `${10 * window.devicePixelRatio}px DM Mono`
-      ctx.fillStyle = '#64748b'
+      ctx.font = `${9 * window.devicePixelRatio}px "JetBrains Mono", monospace`
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'
 
       const frequencies = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000]
       frequencies.forEach(f => {
@@ -110,18 +113,19 @@ export const EQVisualizer = () => {
         ctx.moveTo(padding, y)
         ctx.lineTo(width - padding, y)
         ctx.stroke()
+        
         if (db === 0) {
-          ctx.strokeStyle = '#334155'
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)'
           ctx.stroke()
-          ctx.strokeStyle = '#1e293b'
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.02)'
         }
         ctx.fillText(`${db}dB`, padding - 35 * window.devicePixelRatio, y + 4 * window.devicePixelRatio)
       })
 
-      // Draw Curve
+      // Draw parametric response curves
       ctx.beginPath()
-      ctx.strokeStyle = '#22d3ee'
-      ctx.lineWidth = 3 * window.devicePixelRatio
+      ctx.strokeStyle = '#ff8c00'
+      ctx.lineWidth = 2.5 * window.devicePixelRatio
       ctx.lineJoin = 'round'
 
       for (let x = padding; x < width - padding; x++) {
@@ -134,7 +138,16 @@ export const EQVisualizer = () => {
       }
       ctx.stroke()
 
-      // Draw Control Points
+      // Area filled area under curve gradient
+      ctx.lineTo(width - padding, height - padding)
+      ctx.lineTo(padding, height - padding)
+      const fillGrad = ctx.createLinearGradient(0, padding, 0, height - padding)
+      fillGrad.addColorStop(0, 'rgba(255, 140, 0, 0.05)')
+      fillGrad.addColorStop(1, 'rgba(255, 140, 0, 0)')
+      ctx.fillStyle = fillGrad
+      ctx.fill()
+
+      // Draw editable control node dots
       bands.forEach(band => {
         const x = freqToX(band.frequency, width, padding)
         const y = dbToY(band.gain, height, padding)
@@ -143,9 +156,18 @@ export const EQVisualizer = () => {
         ctx.arc(x, y, 6 * window.devicePixelRatio, 0, Math.PI * 2)
         ctx.fillStyle = '#ffffff'
         ctx.fill()
-        ctx.strokeStyle = '#22d3ee'
-        ctx.lineWidth = 2 * window.devicePixelRatio
+        ctx.strokeStyle = '#ff8c00'
+        ctx.lineWidth = 2.5 * window.devicePixelRatio
         ctx.stroke()
+
+        // Highlight ring around active dragging points
+        if (isDragging === band.id) {
+          ctx.beginPath()
+          ctx.arc(x, y, 12 * window.devicePixelRatio, 0, Math.PI * 2)
+          ctx.strokeStyle = 'rgba(255, 140, 0, 0.25)'
+          ctx.lineWidth = 2 * window.devicePixelRatio
+          ctx.stroke()
+        }
       })
 
       animationId = requestAnimationFrame(draw)
@@ -156,7 +178,7 @@ export const EQVisualizer = () => {
       resizeObserver.disconnect()
       cancelAnimationFrame(animationId)
     }
-  }, [bands, eqManager])
+  }, [bands, eqManager, isDragging])
 
   const handleInteraction = (clientX: number, clientY: number) => {
     const canvas = canvasRef.current
@@ -174,7 +196,7 @@ export const EQVisualizer = () => {
       eqManager.setBandGain(isDragging, newDb)
       setBands([...eqManager.getBands()])
     } else {
-      // Check for band selection
+      // Choose band closest to cursor
       bands.forEach(band => {
         const bx = freqToX(band.frequency, width, padding)
         const by = dbToY(band.gain, height, padding)
@@ -187,10 +209,20 @@ export const EQVisualizer = () => {
   }
 
   return (
-    <div className="w-full h-full min-h-[300px] bg-slate-900/30 rounded-3xl border border-slate-800 p-4 relative overflow-hidden group">
+    <GlassPanel className="p-0 overflow-hidden w-full h-full min-h-[300px]" strong>
+      
+      {/* Top action header overlay */}
+      <div className="absolute top-6 left-6 pointer-events-none z-20">
+        <SectionTitle
+          title="Respuesta de Frecuencia"
+          subtitle="Curva Interactiva DSP en Tiempo Real"
+          icon={<Activity className="w-4 h-4 text-accent animate-pulse" />}
+        />
+      </div>
+
       <canvas 
         ref={canvasRef}
-        className="w-full h-full cursor-crosshair touch-none"
+        className="w-full h-full cursor-crosshair touch-none bg-[#080a0e]"
         onMouseDown={(e) => handleInteraction(e.clientX, e.clientY)}
         onMouseMove={(e) => { if (e.buttons === 1) handleInteraction(e.clientX, e.clientY) }}
         onMouseUp={() => setIsDragging(null)}
@@ -198,10 +230,6 @@ export const EQVisualizer = () => {
         onTouchMove={(e) => handleInteraction(e.touches[0].clientX, e.touches[0].clientY)}
         onTouchEnd={() => setIsDragging(null)}
       />
-      <div className="absolute top-6 left-6 pointer-events-none">
-        <h3 className="text-white font-bold text-xs uppercase tracking-widest opacity-50">Frequency Response</h3>
-        <p className="text-[10px] text-cyan-400 font-mono">LIVE DSP CURVE</p>
-      </div>
-    </div>
+    </GlassPanel>
   )
 }

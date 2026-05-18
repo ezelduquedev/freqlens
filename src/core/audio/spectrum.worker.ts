@@ -29,12 +29,14 @@ function renderSpectrum(
 ) {
   ctx.clearRect(0, 0, width, height)
   
-  // Fondo de rejilla profesional (opcional)
+  // Professional grid background
   drawGrid(ctx, width, height)
 
+  const accentColor = theme.primary || '#ff8c00'
+
   ctx.beginPath()
-  ctx.strokeStyle = theme.primary || '#00ffcc'
-  ctx.lineWidth = 2
+  ctx.strokeStyle = accentColor
+  ctx.lineWidth = 1.75
   ctx.lineJoin = 'round'
 
   const minFreq = 20
@@ -43,30 +45,45 @@ function renderSpectrum(
   const logMax = Math.log10(maxFreq)
   const logRange = logMax - logMin
 
+  let firstPoint = true
   for (let i = 0; i < data.length; i++) {
-    // Frecuencia real de este bin
+    // Real frequency of this bin
     const freq = (i * 22050) / data.length
     if (freq < minFreq) continue
 
-    // Mapeo logarítmico a coordenada X
+    // Logarithmic mapping to X coordinate
     const x = ((Math.log10(freq) - logMin) / logRange) * width
     
-    // Magnitud (dB) a coordenada Y
-    const v = (data[i] + 100) / 100 // Rango -100dB a 0dB
+    // Magnitude (dB) to Y coordinate
+    const v = (data[i] + 100) / 100 // Range -100dB to 0dB
     const y = height - (Math.max(0, Math.min(1, v)) * height)
     
-    if (i === 0) ctx.moveTo(x, y)
-    else ctx.lineTo(x, y)
+    if (firstPoint) {
+      ctx.moveTo(x, y)
+      firstPoint = false
+    } else {
+      ctx.lineTo(x, y)
+    }
   }
-  
   ctx.stroke()
+
+  // Filled area under the curve
+  if (!firstPoint && data.length > 0) {
+    ctx.lineTo(width, height)
+    ctx.lineTo(0, height)
+    const fillGrad = ctx.createLinearGradient(0, 0, 0, height)
+    fillGrad.addColorStop(0, 'rgba(255, 140, 0, 0.08)')
+    fillGrad.addColorStop(1, 'rgba(255, 140, 0, 0.0)')
+    ctx.fillStyle = fillGrad
+    ctx.fill()
+  }
 }
 
 function drawGrid(ctx: OffscreenCanvasRenderingContext2D, width: number, height: number) {
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)'
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.025)'
   ctx.lineWidth = 1
   
-  // Frecuencias clave para la rejilla (log)
+  // Key frequencies for log grid
   const keyFreqs = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000]
   const logMin = Math.log10(20)
   const logMax = Math.log10(22050)
@@ -77,5 +94,11 @@ function drawGrid(ctx: OffscreenCanvasRenderingContext2D, width: number, height:
     ctx.moveTo(x, 0)
     ctx.lineTo(x, height)
     ctx.stroke()
+
+    // Add minimal grid text labels
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)'
+    ctx.font = '8px "JetBrains Mono", monospace'
+    const label = f >= 1000 ? `${f/1000}k` : `${f}`
+    ctx.fillText(label, x + 4, height - 8)
   })
 }
