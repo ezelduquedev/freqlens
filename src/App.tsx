@@ -11,12 +11,10 @@ import { AppShell } from './layouts/AppShell'
 import { type TabId } from './layouts/Sidebar'
 import { LandingPage } from './features/dashboard/LandingPage'
 import { DashboardPage } from './features/dashboard/DashboardPage'
+import DocumentationPage from './features/docs/DocumentationPage'
 
-// Optional UI components for workspace placeholders
+
 import { GlassPanel } from './ui/GlassPanel'
-import { SectionTitle } from './ui/SectionTitle'
-import { Stat } from './ui/Stat'
-import { Activity } from 'lucide-react'
 
 type Page = 'landing' | 'app'
 
@@ -26,6 +24,19 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [eqUpdateKey, setEqUpdateKey] = useState(0)
   const [engineRunning, setEngineRunning] = useState(false)
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    return (localStorage.getItem('freqLens-theme') as 'dark' | 'light') || 'dark'
+  })
+
+  // Sincronizar el atributo data-theme y persistir en localStorage
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('freqLens-theme', theme)
+  }, [theme])
+
+  const toggleTheme = () => {
+    setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
+  }
 
   // Listen to engine state changes from AudioManager
   useEffect(() => {
@@ -84,7 +95,7 @@ function App() {
 
   // Render Landing stage
   if (page === 'landing') {
-    return <LandingPage onStart={handleStart} error={error} />
+    return <LandingPage onStart={handleStart} onDocs={() => { setPage('app'); setActiveTab('docs'); }} error={error} theme={theme} />
   }
 
   return (
@@ -93,6 +104,8 @@ function App() {
       setActiveTab={setActiveTab}
       engineRunning={engineRunning}
       toggleEngine={handleToggleEngine}
+      theme={theme}
+      toggleTheme={toggleTheme}
     >
       {/* ── Tabs Router ── */}
       {activeTab === 'analyzer' && (
@@ -108,22 +121,46 @@ function App() {
             <ProfessionalTuner />
           </div>
           <div className="w-full lg:w-[360px] flex-shrink-0">
-            <GlassPanel className="h-full flex flex-col justify-between" hoverEffect>
+            <GlassPanel className="h-full flex flex-col justify-start gap-4.5 !p-5 border-white/5 bg-black/10 font-mono select-none" hoverEffect>
               <div>
-                <SectionTitle
-                  title="Estado del Afinador Cromático"
-                  subtitle="Detalles del tono de señal de entrada"
-                  icon={<Activity className="w-4 h-4 text-accent" />}
-                  activeIndicator={engineRunning}
-                />
-                <p className="text-xs text-text-soft leading-relaxed mt-2">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className={`w-2 h-2 rounded-full animate-pulse ${engineRunning ? 'bg-accent shadow-[0_0_8px_var(--accent)]' : 'bg-white/20'}`} />
+                  <div>
+                    <h4 className="text-[10px] font-black text-white uppercase tracking-wider leading-none">
+                      ESTADO DEL AFINADOR CROMÁTICO
+                    </h4>
+                    <span className="text-[7.5px] text-accent uppercase tracking-widest block mt-1.5 font-bold">
+                      DETALLES DEL TONO DE SEÑAL DE ENTRADA
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-[10px] text-text-soft leading-relaxed mt-3">
                   Afinador cromático de alta resolución basado en el algoritmo de detección de tono YIN. Mide la frecuencia fundamental en Hz y calcula la desviación exacta en centésimas de semitono (Cents).
                 </p>
               </div>
-              <div className="grid grid-cols-1 gap-2.5 mt-6">
-                <Stat label="Algoritmo DSP" value="YIN Autocorrelation" sub="MULTI-HILO a 60FPS" />
-                <Stat label="Rango de Entrada" value="20Hz - 2.5kHz" sub="MIC / LÍNEA" />
-                <Stat label="Precisión Teórica" value="< 1 Cents" accent sub="CALIDAD DE ESTUDIO" />
+
+              <div className="grid grid-cols-1 gap-3.5 mt-1">
+                {/* DSP Algorithm */}
+                <div className="bg-white dark:bg-black/35 border border-black/5 dark:border-white/[0.03] p-3 rounded-2xl">
+                  <span className="text-[7px] text-text-soft uppercase tracking-wider block font-bold">ALGORITMO DSP</span>
+                  <span className="text-[14px] text-text-main dark:text-white font-extrabold block mt-1">YIN Autocorrelation</span>
+                  <span className="text-[7.5px] text-text-muted uppercase tracking-widest block mt-1 font-bold">MULTI-HILO A 60FPS</span>
+                </div>
+
+                {/* Input Range */}
+                <div className="bg-white dark:bg-black/35 border border-black/5 dark:border-white/[0.03] p-3 rounded-2xl">
+                  <span className="text-[7px] text-text-soft uppercase tracking-wider block font-bold">RANGO DE ENTRADA</span>
+                  <span className="text-[14px] text-text-main dark:text-white font-extrabold block mt-1">20Hz - 2.5kHz</span>
+                  <span className="text-[7.5px] text-text-muted uppercase tracking-widest block mt-1 font-bold">MIC / LÍNEA</span>
+                </div>
+
+                {/* Precision */}
+                <div className="bg-white dark:bg-black/35 border border-black/5 dark:border-white/[0.03] p-3 rounded-2xl">
+                  <span className="text-[7px] text-text-soft uppercase tracking-wider block font-bold">PRECISIÓN TEÓRICA</span>
+                  <span className="text-[14px] text-accent font-extrabold block mt-1">&lt; 1 Cents</span>
+                  <span className="text-[7.5px] text-text-muted uppercase tracking-widest block mt-1 font-bold">CALIDAD DE ESTUDIO</span>
+                </div>
               </div>
             </GlassPanel>
           </div>
@@ -135,17 +172,21 @@ function App() {
       )}
 
       {activeTab === 'eq' && (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-stretch min-h-0 flex-grow">
-          {/* Left Side: Widescreen EQ Visualizer */}
-          <div className="lg:col-span-3 h-[320px] lg:h-[450px] relative">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start w-full">
+          {/* Left Side: Widescreen EQ Visualizer with custom height */}
+          <div className="lg:col-span-3 h-[450px] lg:h-[520px] relative">
             <EQVisualizer key={eqUpdateKey} />
           </div>
           
-          {/* Right Side: Vertical scrollable Presets & Calibrated spaces list */}
-          <div className="lg:col-span-1 h-[320px] lg:h-[450px] min-h-0 flex flex-col">
+          {/* Right Side: Expanded Presets & Calibrated spaces list (NO SCROLL!) */}
+          <div className="lg:col-span-1 h-auto flex flex-col">
             <EQPresets onPresetApply={() => setEqUpdateKey((n) => n + 1)} />
           </div>
         </div>
+      )}
+
+      {activeTab === 'docs' && (
+        <DocumentationPage />
       )}
     </AppShell>
   )

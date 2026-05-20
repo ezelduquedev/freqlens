@@ -6,20 +6,22 @@
 @import "./styles/theme.css";
 
 @theme {
-  --color-bg: #0b0d12;
-  --color-bg-elevated: #11141c;
-  --color-panel: rgba(18, 22, 32, 0.72);
-  --color-panel-solid: #171b25;
-  --color-accent: #ff8c00;
-  --color-accent-soft: rgba(255, 140, 0, 0.12);
-  --color-accent-glow: rgba(255, 140, 0, 0.3);
-  --color-text-main: #f4f7fb;
-  --color-text-soft: #9ba6b2;
-  --color-text-muted: #6e7782;
-  --color-success: #30d158;
-  --color-danger: #ff453a;
-  --color-border-custom: rgba(255, 255, 255, 0.08);
-  --color-border-strong: rgba(255, 255, 255, 0.14);
+  --color-bg: var(--bg);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-panel: var(--panel);
+  --color-panel-solid: var(--panel-solid);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-glow: var(--accent-glow);
+  --color-text-main: var(--text);
+  --color-text-soft: var(--text-soft);
+  --color-text-muted: var(--text-muted);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-border-custom: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-surface: var(--bg-elevated);
+  --color-surfaceVariant: var(--panel-solid);
 }
 
 @utility glass {
@@ -94,4 +96,12 @@
   background: var(--accent);
   border: 2px solid var(--bg);
   box-shadow: 0 0 8px var(--accent-glow);
+}
+
+/* ── PRESET ICON FILTER FOR DARK MODE ── */
+.preset-icon-image {
+  transition: filter 0.3s ease;
+}
+[data-theme="dark"] .preset-icon-image {
+  filter: invert(0.9) brightness(1.2);
 }

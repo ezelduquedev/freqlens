@@ -1,10 +1,11 @@
-import { Sparkles, Play, Award, Volume2 } from 'lucide-react'
+import { Mic } from 'lucide-react'
 import { ProfessionalSpectrum } from '../analyzer/ProfessionalSpectrum'
 import { AdaptiveEQControls } from '../eq/AdaptiveEQControls'
+import { EQPresets } from '../eq/EQPresets'
+import { RMSMeter } from './RMSMeter'
 import { GlassPanel } from '../../ui/GlassPanel'
-import { Button } from '../../ui/Button'
-import { SectionTitle } from '../../ui/SectionTitle'
-import { Stat } from '../../ui/Stat'
+import { RoomProfileStorage } from '../../core/audio/RoomProfileStorage'
+import { useState, useEffect } from 'react'
 
 interface DashboardPageProps {
   onRunWizard: () => void
@@ -12,73 +13,94 @@ interface DashboardPageProps {
 }
 
 export function DashboardPage({ onRunWizard, onUpdateEQ }: DashboardPageProps) {
+  const [activeProfileName, setActiveProfileName] = useState('MASTER CONTROL ROOM B')
+
+  // Load the active room profile name from storage
+  useEffect(() => {
+    const profiles = RoomProfileStorage.getAllProfiles()
+    if (profiles.length > 0) {
+      setActiveProfileName(profiles[0].name.toUpperCase())
+    }
+  }, [onUpdateEQ])
+
   return (
-    <div className="flex flex-col gap-2 h-full min-h-0 fade-in">
+    <div className="flex flex-col lg:grid lg:grid-cols-4 gap-3 h-[calc(100vh-112px)] min-h-0 fade-in select-none">
 
-      {/* TOP: Split 3/4 + 1/4 — Spectrum left, cards right */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 items-stretch min-h-0">
-
-        {/* LEFT: Widescreen RTA Spectrum (3/4) */}
-        <div className="lg:col-span-3 h-[200px] lg:h-[230px] relative">
+      {/* LEFT COLUMN (3/4): Spectrum (RTA) + Parametric EQ Controls */}
+      <div className="lg:col-span-3 flex flex-col gap-2 min-h-0 h-full">
+        {/* RTA Spectrum Analyzer: dominant fullscreen canvas */}
+        <div className="flex-grow min-h-0 relative rounded-2xl overflow-hidden border border-border-custom bg-black/20">
           <ProfessionalSpectrum />
         </div>
 
-        {/* RIGHT: Stacked info cards (1/4) */}
-        <div className="lg:col-span-1 flex flex-col gap-2 min-h-0 h-[200px] lg:h-[230px] overflow-y-hidden no-scrollbar">
-
-          {/* Smart Recommendation */}
-          <GlassPanel className="flex flex-col flex-shrink-0 !p-1.5" hoverEffect>
-            <SectionTitle
-              title="Recomendación"
-              subtitle="Análisis acústico"
-              icon={<Sparkles className="w-3 h-3 text-accent" />}
-              compact
-            />
-            <p className="text-[8px] text-text-soft leading-snug italic bg-white/[0.01] px-1.5 py-1 rounded border border-white/5 mt-1 font-mono">
-              "Exceso de energía en 125Hz. Resonancias modales en graves."
-            </p>
-          </GlassPanel>
-
-          {/* Calibration shortcut */}
-          <GlassPanel className="flex flex-col flex-shrink-0 !p-2" hoverEffect>
-            <SectionTitle
-              title="Calibración"
-              subtitle="Respuesta al impulso"
-              icon={<Volume2 className="w-3 h-3 text-accent" />}
-              compact
-            />
-            <div className="flex items-center justify-between w-full mt-1">
-              <div>
-                <span className="mono text-[7px] text-text-muted uppercase tracking-widest block font-bold">Estado</span>
-                <span className="mono text-[8px] text-accent uppercase font-black tracking-widest block">LISTO</span>
-              </div>
-              <Button variant="primary" size="sm" onClick={onRunWizard} icon={<Play className="w-3 h-3" />}>
-                Iniciar
-              </Button>
-            </div>
-          </GlassPanel>
-
-          {/* Session Motor Stats */}
-          <GlassPanel className="flex flex-col flex-shrink-0 !p-2" hoverEffect>
-            <SectionTitle
-              title="Motor de Audio"
-              subtitle="Latencia web"
-              icon={<Award className="w-3 h-3 text-accent" />}
-              compact
-            />
-            <div className="grid grid-cols-3 gap-1 mt-1">
-              <Stat label="Sample" value="48kHz" sub="OK" compact />
-              <Stat label="Bits" value="32-bit" sub="LOSSLESS" compact />
-              <Stat label="Buffer" value="Low" accent sub="STABLE" compact />
-            </div>
-          </GlassPanel>
-
+        {/* Compact Parametric EQ controls */}
+        <div className="flex-shrink-0">
+          <AdaptiveEQControls onUpdate={onUpdateEQ} />
         </div>
       </div>
 
-      {/* BOTTOM: Full-width Parametric EQ Fader Bar */}
-      <div className="flex-shrink-0 w-full">
-        <AdaptiveEQControls onUpdate={onUpdateEQ} />
+      {/* RIGHT COLUMN (1/4): Medidor RMS/Peak, Presets grid, and System Calibration Info */}
+      <div className="lg:col-span-1 flex flex-col gap-2.5 min-h-0 h-full overflow-y-hidden no-scrollbar pr-0.5">
+        
+        {/* 1. Ableton-style RMS / Peak volume meter */}
+        <div className="flex-shrink-0">
+          <RMSMeter />
+        </div>
+
+        {/* 2. Room Profiles and 2x2 Preset Selector (Expands dynamically) */}
+        <div className="flex-grow min-h-0 bg-panel border border-border-custom rounded-2xl p-3 overflow-hidden">
+          <EQPresets onPresetApply={onUpdateEQ} variant="compact" />
+        </div>
+
+        {/* 3. Acoustic Calibration System Info & Solid Orange Trigger Button */}
+        <GlassPanel className="flex flex-col flex-shrink-0 !p-3 border-border-custom bg-panel/30" hoverEffect>
+          <div className="flex items-center gap-2 mb-2.5">
+            <Mic className="w-4 h-4 text-accent animate-pulse" />
+            <div>
+              <h4 className="text-[9.5px] font-black text-text-main uppercase tracking-wider leading-none">
+                ASISTENTE DE CALIBRACIÓN
+              </h4>
+              <span className="text-[7.5px] text-accent uppercase tracking-widest block mt-1 font-bold">
+                CORRECCIÓN ACÚSTICA FÍSICA
+              </span>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between w-full mb-3 font-mono select-none">
+            <div className="min-w-0">
+              <span className="mono text-[6.5px] text-text-muted uppercase tracking-widest block font-bold">
+                ÚLTIMA MEDICIÓN
+              </span>
+              <span className="mono text-[9.5px] uppercase font-black tracking-tight text-text-main block mt-1 truncate max-w-[150px]">
+                {activeProfileName}
+              </span>
+            </div>
+            
+            <button 
+              onClick={onRunWizard}
+              className="bg-accent hover:bg-accent/90 text-white dark:text-black font-extrabold px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 transition-all uppercase tracking-wider text-[9px] cursor-pointer shadow-[0_0_12px_rgba(255,140,0,0.2)]"
+            >
+              <span className="text-[8px]">▶</span> CALIBRAR
+            </button>
+          </div>
+
+          {/* Stats Bar */}
+          <div className="grid grid-cols-3 gap-1.5 border-t border-border-custom pt-2.5 text-center font-mono">
+            <div className="bg-bg-elevated border border-border-custom py-1 px-1.5 rounded-lg">
+              <span className="text-[6.5px] text-text-soft uppercase tracking-tighter block font-bold">SAMPLE</span>
+              <span className="text-[8.5px] text-text-main font-extrabold block mt-0.5">48 kHz</span>
+            </div>
+            <div className="bg-bg-elevated border border-border-custom py-1 px-1.5 rounded-lg">
+              <span className="text-[6.5px] text-text-soft uppercase tracking-tighter block font-bold">BUFFER</span>
+              <span className="text-[8.5px] text-accent font-extrabold block mt-0.5">Low</span>
+            </div>
+            <div className="bg-bg-elevated border border-border-custom py-1 px-1.5 rounded-lg">
+              <span className="text-[6.5px] text-text-soft uppercase tracking-tighter block font-bold">LATENCIA</span>
+              <span className="text-[8.5px] text-success font-extrabold block mt-0.5">Estable</span>
+            </div>
+          </div>
+        </GlassPanel>
+
       </div>
 
     </div>

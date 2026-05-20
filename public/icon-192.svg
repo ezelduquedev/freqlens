@@ -1,5 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
   <rect width="192" height="192" fill="#07070d" rx="24"/>
-  <text x="96" y="140" font-size="130" text-anchor="middle"
-    font-family="monospace" fill="#fb923c">F</text>
+  <g transform="translate(46, 46)" stroke-linecap="round">
+    <circle cx="50" cy="50" r="40" stroke="#ff8c00" stroke-width="6" fill="none" />
+    <path d="M 22 62 Q 35 62 42 45 Q 50 25 58 45 Q 65 62 78 62" stroke="white" stroke-width="4" fill="none" />
+    <circle cx="50" cy="48" r="5" fill="white" stroke="none" />
+  </g>
 </svg>

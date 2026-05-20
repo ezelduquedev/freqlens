@@ -104,3 +104,187 @@ code, .font-mono, .mono {
   background: var(--accent-soft);
   color: var(--accent);
 }
+
+/* ─────────────────────────────────────────────────────────────────
+   LIGHT MODE: Global Overrides
+   These rules remap hardcoded Tailwind dark classes (text-white,
+   bg-black/*, border-white/*, bg-white/*) to readable light-mode
+   equivalents, so individual components don't need to be edited.
+───────────────────────────────────────────────────────────────── */
+
+/* --- Text color fixes --- */
+[data-theme="light"] .text-white {
+  color: #0f172a !important;
+}
+[data-theme="light"] .hover\:text-white:hover {
+  color: #1e293b !important;
+}
+[data-theme="light"] .group:hover .group-hover\:text-white {
+  color: #1e293b !important;
+}
+
+/* --- Black-alpha backgrounds → subtle light backgrounds --- */
+[data-theme="light"] .bg-black\/5 {
+  background-color: rgba(0, 0, 0, 0.03) !important;
+}
+[data-theme="light"] .bg-black\/10 {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+[data-theme="light"] .bg-black\/15 {
+  background-color: rgba(0, 0, 0, 0.07) !important;
+}
+[data-theme="light"] .bg-black\/20 {
+  background-color: rgba(0, 0, 0, 0.10) !important;
+}
+[data-theme="light"] .bg-black\/25 {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+[data-theme="light"] .bg-black\/30 {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+[data-theme="light"] .bg-black\/35 {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+[data-theme="light"] .bg-black\/40 {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+[data-theme="light"] .bg-black\/45 {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+[data-theme="light"] .bg-black\/50 {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+[data-theme="light"] .bg-black\/60 {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+[data-theme="light"] .bg-black\/70 {
+  background-color: rgba(0, 0, 0, 0.07) !important;
+}
+[data-theme="light"] .bg-black\/80 {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* --- White-alpha backgrounds → near-transparent in light mode --- */
+[data-theme="light"] .bg-white\/5 {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+[data-theme="light"] .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+[data-theme="light"] .bg-white\/20 {
+  background-color: rgba(0, 0, 0, 0.07) !important;
+}
+[data-theme="light"] .bg-white\/30 {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+}
+[data-theme="light"] .bg-white\/\[0\.01\] {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+}
+[data-theme="light"] .bg-white\/\[0\.02\] {
+  background-color: rgba(0, 0, 0, 0.03) !important;
+}
+[data-theme="light"] .bg-white\/\[0\.03\] {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+[data-theme="light"] .bg-white\/\[0\.04\] {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+[data-theme="light"] .bg-white\/\[0\.08\] {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+/* --- White-alpha borders → dark borders in light mode --- */
+[data-theme="light"] .border-white\/5 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+[data-theme="light"] .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.12) !important;
+}
+[data-theme="light"] .border-white\/\[0\.02\] {
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+[data-theme="light"] .border-white\/\[0\.03\] {
+  border-color: rgba(0, 0, 0, 0.07) !important;
+}
+[data-theme="light"] .border-white\/\[0\.04\] {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+[data-theme="light"] .border-white\/\[0\.05\] {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+
+/* --- glass-effect-strong & glass-strong (hardcoded dark bg) --- */
+[data-theme="light"] .glass-effect-strong,
+[data-theme="light"] .glass-strong {
+  background: rgba(255, 255, 255, 0.88) !important;
+}
+
+/* --- Hover bg-white variants → light hover states --- */
+[data-theme="light"] .hover\:bg-white\/\[0\.02\]:hover {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+[data-theme="light"] .hover\:bg-white\/\[0\.04\]:hover {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+[data-theme="light"] .hover\:bg-white\/\[0\.08\]:hover {
+  background-color: rgba(0, 0, 0, 0.07) !important;
+}
+[data-theme="light"] .hover\:bg-white\/10:hover {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* --- Input fields with dark styling --- */
+[data-theme="light"] input.text-white,
+[data-theme="light"] select.text-white,
+[data-theme="light"] textarea.text-white {
+  color: #0f172a !important;
+  background-color: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+/* --- Sidebar: keep it clean in light mode --- */
+[data-theme="light"] aside {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  border-right-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* --- All inputs & selects: ensure dark text, light bg in light mode --- */
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+  color: #0f172a !important;
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+[data-theme="light"] select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+/* --- Ensure any remaining dark-only container backgrounds are fixed --- */
+[data-theme="light"] .bg-\[\#05070a\] {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* --- Ensure any remaining dark-only container backgrounds are fixed --- */
+[data-theme="light"] .bg-\[\#080b0f\],
+[data-theme="light"] .bg-\[\#080a0e\],
+[data-theme="light"] .bg-\[\#05070a\] {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* --- Pulse/glow dots still visible in light mode --- */
+[data-theme="light"] .bg-white\/30 {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+/* --- Fix Workspace Gradient --- */
+[data-theme="light"] .to-\[\#07080b\] {
+  --tw-gradient-to: #e2e8f0 !important;
+}

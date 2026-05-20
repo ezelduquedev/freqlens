@@ -1,0 +1,263 @@
+[
+  {
+    "id": "introduccion-previa",
+    "title": "Presentación",
+    "level": 1,
+    "content": "<p><strong>TRABAJO FIN DE GRADO</strong></p><p>Desarrollo de Aplicaciones Multiplataforma</p><p><strong>FreqLens</strong></p><p>Aplicación web de análisis y procesamiento de audio</p><p>en tiempo real mediante Web Audio API</p><p><strong>DOCUMENTO MAESTRO — INFORME TÉCNICO</strong></p><p><strong>Alumno:</strong>  Ezel Alexander Duque Arias</p><p><strong>Ciclo:</strong>  Desarrollo de Aplicaciones Multiplataforma (DAM)</p><p><strong>Fecha de entrega:</strong>  28 de mayo de 2026</p><p><strong>Versión del documento:</strong>  v1.0 — Documento Maestro</p>",
+    "subsections": []
+  },
+  {
+    "id": "1-resumen-ejecutivo",
+    "title": "1. Resumen Ejecutivo",
+    "level": 1,
+    "content": "<h1><strong>1. Resumen Ejecutivo</strong></h1><p>FreqLens es una aplicación web progresiva (PWA) orientada al análisis y procesamiento de audio en tiempo real, desarrollada íntegramente mediante tecnologías web nativas. La aplicación permite capturar audio a través del micrófono del dispositivo, visualizar su espectro frecuencial en tiempo real, detectar la afinación musical mediante el algoritmo YIN y aplicar ecualización adaptativa experimental a través de BiquadFilterNodes de la Web Audio API.</p><p>El proyecto ha sido desarrollado de forma individual como Trabajo de Fin de Grado del ciclo Desarrollo de Aplicaciones Multiplataforma (DAM), y demuestra la viabilidad técnica de construir herramientas de procesamiento de señal digital complejas ejecutadas completamente en el navegador, sin necesidad de backend ni instalación de software adicional.</p><table><tr><td><p><strong>Datos clave del proyecto</strong></p><p>Tecnologías principales: React 19 · TypeScript 5.9 · Vite 8 · Tailwind CSS v4 · Web Audio API · Canvas 2D · AudioWorklet\nMódulos funcionales: Analizador espectral · Afinador cromático · Ecualización adaptativa · Calibración acústica experimental\nArquitectura: Modular por capas (core / features / hooks / utils / components) · Patrón Singleton para managers\nEstado: Build de producción funcional · PWA configurada · Despliegue en Vercel</p></td></tr></table>",
+    "subsections": []
+  },
+  {
+    "id": "2-introduccion-y-justificacion-del-proyecto",
+    "title": "2. Introducción y Justificación del Proyecto",
+    "level": 1,
+    "content": "<h1><strong>2. Introducción y Justificación del Proyecto</strong></h1>",
+    "subsections": [
+      {
+        "id": "21-motivacion",
+        "title": "2.1 Motivación",
+        "level": 2,
+        "content": "<h2><strong>2.1 Motivación</strong></h2><p>Las herramientas profesionales de análisis de audio —como iZotope RX, FabFilter Pro-Q o Sonarworks SoundID— son soluciones de escritorio que requieren instalación, licencias de coste elevado y hardware específico. Esto crea una barrera de acceso significativa para músicos aficionados, estudiantes de producción musical y profesores que necesitan herramientas de análisis para entornos educativos.</p><p>FreqLens nace como respuesta a esa brecha: demostrar que la Web Audio API y las APIs nativas del navegador son suficientemente potentes para construir una herramienta de análisis de audio funcional, accesible desde cualquier dispositivo con navegador, sin instalación ni coste.</p>"
+      },
+      {
+        "id": "22-problema-que-resuelve",
+        "title": "2.2 Problema que resuelve",
+        "level": 2,
+        "content": "<h2><strong>2.2 Problema que resuelve</strong></h2><p>El proyecto aborda tres necesidades concretas:</p><ul><li>Visualización espectral en tiempo real sin herramientas de escritorio o plugins DAW.</li><li>Detección de afinación musical con precisión sub-semitono, accesible desde el navegador.</li><li>Exploración de técnicas de corrección acústica experimental directamente en el entorno web.</li></ul>"
+      },
+      {
+        "id": "23-comparativa-con-soluciones-existentes",
+        "title": "2.3 Comparativa con soluciones existentes",
+        "level": 2,
+        "content": "<h2><strong>2.3 Comparativa con soluciones existentes</strong></h2><table><thead><tr><th><p><strong>Característica</strong></p></th><th><p><strong>FreqLens</strong></p></th><th><p><strong>iZotope RX</strong></p></th><th><p><strong>GuitarTuna</strong></p></th><th><p><strong>FabFilter Pro-Q</strong></p></th></tr></thead><tbody><tr><td><p>Acceso</p></td><td><p>Navegador web</p></td><td><p>Escritorio (Win/Mac)</p></td><td><p>Móvil (iOS/Android)</p></td><td><p>Plugin DAW</p></td></tr><tr><td><p>Coste</p></td><td><p>Gratuito</p></td><td><p>€ 449+</p></td><td><p>Freemium</p></td><td><p>€ 179+</p></td></tr><tr><td><p>Instalación</p></td><td><p>No requerida</p></td><td><p>Requerida</p></td><td><p>Requerida</p></td><td><p>Requerida</p></td></tr><tr><td><p>Espectro FFT</p></td><td><p>✓ Tiempo real</p></td><td><p>✓ Avanzado</p></td><td><p>✗</p></td><td><p>✓ Avanzado</p></td></tr><tr><td><p>Afinador</p></td><td><p>✓ YIN (precisión sub-cent)</p></td><td><p>✗</p></td><td><p>✓ Básico</p></td><td><p>✗</p></td></tr><tr><td><p>EQ adaptativa</p></td><td><p>✓ Prototipo funcional</p></td><td><p>✓ Profesional</p></td><td><p>✗</p></td><td><p>✓ Profesional</p></td></tr><tr><td><p>Multiplataforma</p></td><td><p>✓ Cualquier SO/dispositivo</p></td><td><p>Limitado</p></td><td><p>iOS/Android</p></td><td><p>Windows/Mac</p></td></tr></tbody></table><p>La ventaja diferencial de FreqLens no es superar en prestaciones a soluciones comerciales profesionales, sino ofrecer una herramienta funcional, gratuita, accesible desde el navegador, sin dependencias externas y orientada a casos de uso educativos y semi-profesionales.</p>"
+      }
+    ]
+  },
+  {
+    "id": "3-objetivos-del-proyecto",
+    "title": "3. Objetivos del Proyecto",
+    "level": 1,
+    "content": "<h1><strong>3. Objetivos del Proyecto</strong></h1>",
+    "subsections": [
+      {
+        "id": "31-objetivo-principal",
+        "title": "3.1 Objetivo principal",
+        "level": 2,
+        "content": "<h2><strong>3.1 Objetivo principal</strong></h2><p>Desarrollar una aplicación web progresiva capaz de capturar audio en tiempo real desde el micrófono del dispositivo y proporcionar herramientas de análisis y procesamiento de señal ejecutadas íntegramente en el navegador mediante Web Audio API, sin necesidad de backend.</p>"
+      },
+      {
+        "id": "32-objetivos-especificos",
+        "title": "3.2 Objetivos específicos",
+        "level": 2,
+        "content": "<h2><strong>3.2 Objetivos específicos</strong></h2><ol><li>Implementar un analizador de espectro frecuencial basado en FFT con visualización Canvas 2D en tiempo real, incluyendo escala logarítmica, peak hold y métricas RMS.</li><li>Desarrollar un afinador cromático de alta precisión mediante el algoritmo YIN ejecutado en un AudioWorkletProcessor, con suavizado de jitter y presentación visual semicircular.</li><li>Construir un sistema de ecualización adaptativa experimental basado en BiquadFilterNodes encadenados, con gestión de bandas parametrizadas y presets configurables.</li><li>Implementar un prototipo de calibración acústica experimental mediante generación de ruido rosa (algoritmo Voss-McCartney) y sine sweep logarítmico para análisis de respuesta de sala.</li><li>Garantizar una arquitectura modular, mantenible y tipada mediante TypeScript estricto, con separación de responsabilidades entre core, features, hooks y components.</li><li>Configurar la aplicación como PWA con manifest, íconos y build de producción optimizado mediante Vite 8.</li></ol>"
+      }
+    ]
+  },
+  {
+    "id": "4-requisitos-del-sistema",
+    "title": "4. Requisitos del Sistema",
+    "level": 1,
+    "content": "<h1><strong>4. Requisitos del Sistema</strong></h1>",
+    "subsections": [
+      {
+        "id": "41-requisitos-funcionales",
+        "title": "4.1 Requisitos Funcionales",
+        "level": 2,
+        "content": "<h2><strong>4.1 Requisitos Funcionales</strong></h2><table><thead><tr><th><p><strong>ID</strong></p></th><th><p><strong>Nombre</strong></p></th><th><p><strong>Descripción</strong></p></th><th><p><strong>Prioridad</strong></p></th></tr></thead><tbody><tr><td><p>RF-01</p></td><td><p>Captura de micrófono</p></td><td><p>El sistema debe solicitar permisos de micrófono al usuario y capturar el stream de audio mediante getUserMedia.</p></td><td><p>Alta</p></td></tr><tr><td><p>RF-02</p></td><td><p>Analizador espectral FFT</p></td><td><p>El analizador debe procesar el audio con AnalyserNode (fftSize 4096) y renderizar el espectro en Canvas 2D a ≥30 fps.</p></td><td><p>Alta</p></td></tr><tr><td><p>RF-03</p></td><td><p>Escala logarítmica</p></td><td><p>El eje de frecuencias debe presentarse en escala logarítmica para representar correctamente el espectro audible.</p></td><td><p>Alta</p></td></tr><tr><td><p>RF-04</p></td><td><p>Peak hold</p></td><td><p>El analizador debe mantener y mostrar visualmente los picos máximos detectados con decaimiento temporal.</p></td><td><p>Media</p></td></tr><tr><td><p>RF-05</p></td><td><p>Métricas RMS y pico</p></td><td><p>El sistema debe calcular y mostrar el nivel RMS y el nivel de pico en tiempo real.</p></td><td><p>Media</p></td></tr><tr><td><p>RF-06</p></td><td><p>Afinador cromático</p></td><td><p>El sistema debe detectar la frecuencia fundamental mediante el algoritmo YIN en un AudioWorkletProcessor.</p></td><td><p>Alta</p></td></tr><tr><td><p>RF-07</p></td><td><p>Presentación nota musical</p></td><td><p>El afinador debe convertir la frecuencia detectada a nota, octava y desviación en cents respecto al temperamento igual.</p></td><td><p>Alta</p></td></tr><tr><td><p>RF-08</p></td><td><p>Referencia A4 configurable</p></td><td><p>El usuario debe poder ajustar la frecuencia de referencia A4 (por defecto 440 Hz).</p></td><td><p>Media</p></td></tr><tr><td><p>RF-09</p></td><td><p>Suavizado de detección</p></td><td><p>La detección de pitch debe aplicar suavizado temporal para reducir el jitter de lectura.</p></td><td><p>Media</p></td></tr><tr><td><p>RF-10</p></td><td><p>EQ adaptativa</p></td><td><p>El sistema debe implementar una cadena de BiquadFilterNodes configurables (highpass, lowshelf, peaking ×2, highshelf).</p></td><td><p>Alta</p></td></tr><tr><td><p>RF-11</p></td><td><p>Presets de ecualización</p></td><td><p>El usuario debe poder seleccionar presets predefinidos de ecualización.</p></td><td><p>Media</p></td></tr><tr><td><p>RF-12</p></td><td><p>Ajuste manual de bandas</p></td><td><p>El usuario debe poder modificar la ganancia de cada banda de forma interactiva.</p></td><td><p>Media</p></td></tr><tr><td><p>RF-13</p></td><td><p>Visualización de curva EQ</p></td><td><p>El sistema debe renderizar la curva de respuesta de frecuencia del ecualizador en tiempo real.</p></td><td><p>Media</p></td></tr><tr><td><p>RF-14</p></td><td><p>Calibración acústica</p></td><td><p>El sistema debe implementar un prototipo de calibración mediante ruido rosa y sine sweep con análisis de respuesta.</p></td><td><p>Baja</p></td></tr><tr><td><p>RF-15</p></td><td><p>Generación ruido rosa</p></td><td><p>La calibración debe generar ruido rosa mediante el algoritmo Voss-McCartney (7 generadores).</p></td><td><p>Baja</p></td></tr><tr><td><p>RF-16</p></td><td><p>Generación sine sweep</p></td><td><p>La calibración debe generar un sine sweep logarítmico de 20 Hz a 20.000 Hz configurable en duración.</p></td><td><p>Baja</p></td></tr><tr><td><p>RF-17</p></td><td><p>Navegación por tabs</p></td><td><p>La interfaz debe organizarse en módulos accesibles mediante un sistema de tabs (Analizador, Afinador, EQ, Calibración).</p></td><td><p>Alta</p></td></tr><tr><td><p>RF-18</p></td><td><p>Diseño responsive</p></td><td><p>La interfaz debe adaptarse a diferentes tamaños de pantalla, incluyendo dispositivos móviles.</p></td><td><p>Alta</p></td></tr><tr><td><p>RF-19</p></td><td><p>Modo PWA</p></td><td><p>La aplicación debe incluir manifest.json e íconos para instalación como Progressive Web App.</p></td><td><p>Media</p></td></tr></tbody></table>"
+      },
+      {
+        "id": "42-requisitos-no-funcionales",
+        "title": "4.2 Requisitos No Funcionales",
+        "level": 2,
+        "content": "<h2><strong>4.2 Requisitos No Funcionales</strong></h2><table><thead><tr><th><p><strong>ID</strong></p></th><th><p><strong>Nombre</strong></p></th><th><p><strong>Descripción</strong></p></th></tr></thead><tbody><tr><td><p>RNF-01</p></td><td><p>Rendimiento</p></td><td><p>El analizador espectral debe mantener una tasa de renderizado mínima de 30 fps en hardware moderno.</p></td></tr><tr><td><p>RNF-02</p></td><td><p>Latencia de audio</p></td><td><p>La cadena de procesamiento debe operar con la latencia mínima que permita AudioContext (latencyHint: 'interactive').</p></td></tr><tr><td><p>RNF-03</p></td><td><p>Compatibilidad</p></td><td><p>La aplicación debe funcionar en Chrome ≥100, Firefox ≥100, Safari ≥16 y Edge ≥100.</p></td></tr><tr><td><p>RNF-04</p></td><td><p>Privacidad</p></td><td><p>El procesamiento de audio se realiza íntegramente en el cliente. Ningún dato de audio se transmite a servidores externos.</p></td></tr><tr><td><p>RNF-05</p></td><td><p>Tipado estricto</p></td><td><p>El código fuente debe compilar sin errores con TypeScript en modo estricto (strict: true).</p></td></tr><tr><td><p>RNF-06</p></td><td><p>Modularidad</p></td><td><p>La arquitectura debe separar claramente core, features, hooks, components y utils, sin dependencias circulares.</p></td></tr><tr><td><p>RNF-07</p></td><td><p>Build de producción</p></td><td><p>La aplicación debe generar un build de producción optimizado mediante Vite 8 con tree-shaking y code splitting.</p></td></tr><tr><td><p>RNF-08</p></td><td><p>Accesibilidad básica</p></td><td><p>La interfaz debe incluir atributos aria y contraste suficiente para cumplir WCAG 2.1 nivel AA en los módulos principales.</p></td></tr></tbody></table>"
+      }
+    ]
+  },
+  {
+    "id": "5-arquitectura-tecnica",
+    "title": "5. Arquitectura Técnica",
+    "level": 1,
+    "content": "<h1><strong>5. Arquitectura Técnica</strong></h1>",
+    "subsections": [
+      {
+        "id": "51-stack-tecnologico",
+        "title": "5.1 Stack tecnológico",
+        "level": 2,
+        "content": "<h2><strong>5.1 Stack tecnológico</strong></h2><table><thead><tr><th><p><strong>Tecnología</strong></p></th><th><p><strong>Versión</strong></p></th><th><p><strong>Rol en el proyecto</strong></p></th><th><p><strong>Justificación</strong></p></th></tr></thead><tbody><tr><td><p>React 19</p></td><td><p>19.2.4</p></td><td><p>Framework UI principal</p></td><td><p>React 19 introduce mejoras en el compilador y concurrent features que reducen re-renders innecesarios en componentes de alta frecuencia de actualización, críticos para el renderizado de audio en tiempo real.</p></td></tr><tr><td><p>TypeScript</p></td><td><p>5.9.3</p></td><td><p>Tipado estático</p></td><td><p>Garantiza la integridad del grafo de nodos de audio (AudioNode, AnalyserNode, BiquadFilterNode) y de las interfaces de DSP, eliminando errores en tiempo de ejecución en operaciones sobre buffers Float32Array.</p></td></tr><tr><td><p>Vite</p></td><td><p>8.0.1</p></td><td><p>Bundler y dev server</p></td><td><p>Vite 8 ofrece HMR ultra-rápido y soporte nativo de Worker URLs mediante import.meta.url, necesario para cargar el AudioWorkletProcessor (yin-processor.ts) sin configuración adicional.</p></td></tr><tr><td><p>Tailwind CSS</p></td><td><p>v4.2.2</p></td><td><p>Sistema de estilos</p></td><td><p>Tailwind v4 como plugin nativo de Vite elimina la necesidad de PostCSS externo y permite tokens de diseño integrados en el build, reduciendo el CSS final a clases utilizadas.</p></td></tr><tr><td><p>Web Audio API</p></td><td><p>Nativa</p></td><td><p>Motor de audio DSP</p></td><td><p>API nativa del navegador que proporciona AudioContext, AnalyserNode (FFT), BiquadFilterNode (EQ), AudioWorkletNode (procesamiento en hilo separado) y AudioBufferSourceNode (generación de señal).</p></td></tr><tr><td><p>Canvas 2D</p></td><td><p>Nativa</p></td><td><p>Renderizado visual</p></td><td><p>Renderizado de alta performance del espectrograma y visualizadores mediante requestAnimationFrame sincronizado con el hilo de composición del navegador.</p></td></tr><tr><td><p>AudioWorklet</p></td><td><p>Nativa</p></td><td><p>Procesamiento en hilo audio</p></td><td><p>Permite ejecutar el algoritmo YIN en el hilo de audio real-time del navegador, separado del hilo principal de JavaScript, garantizando procesamiento sin glitches.</p></td></tr><tr><td><p>Vercel</p></td><td><p>Cloud</p></td><td><p>Despliegue y hosting</p></td><td><p>CDN global con soporte nativo de PWA, HTTPS obligatorio (requerido por getUserMedia) y despliegue automático desde repositorio Git.</p></td></tr></tbody></table>"
+      },
+      {
+        "id": "52-estructura-del-repositorio",
+        "title": "5.2 Estructura del repositorio",
+        "level": 2,
+        "content": "<h2><strong>5.2 Estructura del repositorio</strong></h2><table><tr><td><p>freqlens/</p><p>├── src/</p><p>│   ├── App.tsx                      # Componente raíz, enrutamiento de tabs</p><p>│   ├── main.tsx                     # Entry point, montaje React</p><p>│   ├── index.css                    # Estilos globales y tokens Tailwind</p><p>│   │</p><p>│   ├── core/                        # Núcleo de negocio — sin dependencias UI</p><p>│   │   ├── audio/</p><p>│   │   │   ├── AudioManager.ts      # Singleton: AudioContext, stream, cadena de nodos</p><p>│   │   │   ├── AdaptiveEQManager.ts # Singleton: gestión de BiquadFilterNodes</p><p>│   │   │   ├── CalibrationService.ts# Generación ruido rosa y sine sweep</p><p>│   │   │   ├── SmartAnalyzer.ts     # Métricas avanzadas sobre el AnalyserNode</p><p>│   │   │   ├── spectrum.worker.ts   # Web Worker para procesamiento FFT offload</p><p>│   │   │   └── yin-processor.ts     # AudioWorkletProcessor: detección YIN en tiempo real</p><p>│   │   ├── dsp/</p><p>│   │   │   ├── YinDSP.ts            # Lógica pura YIN: difference, CMNDF, interpolación</p><p>│   │   │   └── PitchService.ts      # Conversión Hz → nota/octava/cents</p><p>│   │   └── db/</p><p>│   │       └── StorageManager.ts    # Persistencia de presets y calibraciones</p><p>│   │</p><p>│   ├── features/                    # Módulos funcionales con UI propia</p><p>│   │   ├── analyzer/</p><p>│   │   │   └── ProfessionalSpectrum.tsx  # Canvas analizador avanzado</p><p>│   │   ├── tuner/</p><p>│   │   │   └── ProfessionalTuner.tsx     # UI afinador con medidor semicircular</p><p>│   │   ├── eq/</p><p>│   │   │   ├── AdaptiveEQControls.tsx    # Controles interactivos de bandas EQ</p><p>│   │   │   ├── EQVisualizer.tsx          # Curva de respuesta de frecuencia Canvas</p><p>│   │   │   └── EQPresets.tsx             # Selector de presets</p><p>│   │   └── calibrate/</p><p>│   │       └── EQCalibration.tsx         # Interfaz módulo calibración acústica</p><p>│   │</p><p>│   ├── components/                  # Componentes de layout reutilizables</p><p>│   │   └── Layout/</p><p>│   │       ├── Header.tsx           # Cabecera con branding FreqLens</p><p>│   │       ├── Tabs.tsx             # Navegación principal por módulos</p><p>│   │       └── StartScreen.tsx      # Pantalla inicial de solicitud de permisos</p><p>│   │</p><p>│   ├── hooks/                       # Custom hooks React</p><p>│   │   ├── useAudio.ts              # Hook de lifecycle del AudioManager</p><p>│   │   └── useAnimationFrame.ts     # Hook de RAF sincronizado</p><p>│   │</p><p>│   └── utils/                       # Utilidades puras sin estado</p><p>│       ├── audio.ts                 # Funciones de conversión dB, normalización</p><p>│       └── notes.ts                 # Tablas de frecuencias musicales</p><p>│</p><p>├── public/                          # Assets estáticos</p><p>│   ├── manifest.json                # Configuración PWA</p><p>│   ├── favicon.svg                  # Icono de aplicación</p><p>│   ├── icon-192.svg                 # Icono PWA 192px</p><p>│   └── icons.svg                    # Sprite de íconos</p><p>│</p><p>└── dist/                            # Build de producción (generado por Vite)</p></td></tr></table>"
+      },
+      {
+        "id": "53-flujo-de-datos-de-audio",
+        "title": "5.3 Flujo de datos de audio",
+        "level": 2,
+        "content": "<h2><strong>5.3 Flujo de datos de audio</strong></h2><p>El grafo de nodos de audio implementado en AudioManager sigue la siguiente cadena de procesamiento:</p><table><tr><td><p>MediaStream (micrófono)</p><p>    │</p><p>    ▼</p><p>MediaStreamAudioSourceNode</p><p>    │                    │</p><p>    │                    ▼</p><p>    │           AudioWorkletNode (yin-processor)</p><p>    │                    │</p><p>    │                    ▼</p><p>    │           Mensaje: PITCH_DETECTED → UI Afinador</p><p>    │</p><p>    ▼</p><p>AdaptiveEQManager.connect(source, analyser)</p><p>    │</p><p>    ├── BiquadFilterNode (highpass, 20 Hz, Q=0.707)</p><p>    ├── BiquadFilterNode (lowshelf, 100 Hz)</p><p>    ├── BiquadFilterNode (peaking, 500 Hz)</p><p>    ├── BiquadFilterNode (peaking, 2000 Hz)</p><p>    └── BiquadFilterNode (highshelf, 8000 Hz)</p><p>                │</p><p>                ▼</p><p>         AnalyserNode (fftSize: 4096, sampleRate: 48000 Hz)</p><p>                │</p><p>                ▼</p><p>         Canvas 2D → Analizador espectral (requestAnimationFrame)</p></td></tr></table><p>El AudioContext se inicializa con sampleRate: 48000 Hz y latencyHint: 'interactive' para minimizar la latencia. El AnalyserNode opera con un fftSize de 4096, lo que proporciona una resolución frecuencial de aproximadamente 11.7 Hz por bin (48000 / 4096), con 2048 bins utilizables hasta la frecuencia de Nyquist (24000 Hz).</p>"
+      }
+    ]
+  },
+  {
+    "id": "6-algoritmos-de-procesamiento-digital-de-senal",
+    "title": "6. Algoritmos de Procesamiento Digital de Señal",
+    "level": 1,
+    "content": "<h1><strong>6. Algoritmos de Procesamiento Digital de Señal</strong></h1>",
+    "subsections": [
+      {
+        "id": "61-analisis-espectral-por-fft",
+        "title": "6.1 Análisis espectral por FFT",
+        "level": 2,
+        "content": "<h2><strong>6.1 Análisis espectral por FFT</strong></h2><p>La visualización del espectro frecuencial se basa en la Transformada Rápida de Fourier (FFT) implementada de forma nativa por el AnalyserNode de la Web Audio API. El AnalyserNode aplica internamente una ventana de Hann antes del cálculo FFT para reducir el leakage espectral.</p><p>La representación en pantalla utiliza una escala logarítmica en el eje de frecuencias, que coincide con la percepción humana del sonido (escala de Mel). Cada bin FFT se mapea a la coordenada de pantalla correspondiente mediante la función:</p><table><tr><td><p>x(f) = width × log(f / f_min) / log(f_max / f_min)</p><p>Donde f_min = 20 Hz (límite inferior audible)</p><p>      f_max = 20.000 Hz (límite superior audible)</p><p>      width = ancho del canvas en píxeles</p></td></tr></table><p>El peak hold acumula el máximo valor por bin en cada frame y aplica un decaimiento temporal configurable, ofreciendo una referencia visual de los picos de energía por banda.</p>"
+      },
+      {
+        "id": "62-deteccion-de-tono-fundamental-algoritmo-yin",
+        "title": "6.2 Detección de tono fundamental — Algoritmo YIN",
+        "level": 2,
+        "content": "<h2><strong>6.2 Detección de tono fundamental — Algoritmo YIN</strong></h2><p>El afinador implementa el algoritmo YIN (De Cheveigné &amp; Kawahara, 2002), un estimador robusto de frecuencia fundamental especialmente adecuado para señales musicales monofónicas. La implementación se divide entre dos ficheros:</p><ul><li>YinDSP.ts: lógica pura del algoritmo (sin dependencias de Web Audio API).</li><li>yin-processor.ts: AudioWorkletProcessor que ejecuta YinDSP en el hilo de audio real-time.</li></ul><p>Las cuatro etapas implementadas son:</p><p><strong>Paso 1 — Función de diferencia:</strong></p><p>Calcula la suma de diferencias al cuadrado entre la señal y su versión desplazada τ muestras:</p><table><tr><td><p>d(τ) = Σ (x[j] - x[j+τ])²  para j = 1..W</p></td></tr></table><p><strong>Paso 2 — CMNDF (Cumulative Mean Normalized Difference Function):</strong></p><p>Normaliza la función de diferencia acumulativamente para eliminar el sesgo hacia τ=0:</p><table><tr><td><p>CMNDF[τ] = d(τ) / ((1/τ) × Σ d(t))  para t=1..τ</p><p>CMNDF[0] = 1</p></td></tr></table><p><strong>Paso 3 — Umbral absoluto:</strong></p><p>Localiza el primer mínimo local de CMNDF por debajo de un umbral (típicamente 0.15), que corresponde al período fundamental T0.</p><p><strong>Paso 4 — Interpolación parabólica:</strong></p><p>Mejora la precisión del período estimado más allá de la resolución de una muestra, utilizando los puntos vecinos del mínimo detectado:</p><table><tr><td><p>τ_mejor = τ + (γ - α) / (2 × (2β - γ - α))</p><p>Donde α = CMNDF[τ-1],  β = CMNDF[τ],  γ = CMNDF[τ+1]</p></td></tr></table><p>La frecuencia fundamental resultante se calcula como f0 = sampleRate / τ_mejor, que es convertida a nota, octava y desviación en cents respecto a A4 = 440 Hz mediante PitchService.ts.</p><table><tr><td><p><strong>Referencia académica</strong></p><p>De Cheveigné, A., &amp; Kawahara, H. (2002). YIN, a fundamental frequency estimator for speech and music. Journal of the Acoustical Society of America, 111(4), 1917–1930.</p></td></tr></table>"
+      },
+      {
+        "id": "63-ecualizacion-adaptativa-biquadfilternode",
+        "title": "6.3 Ecualización adaptativa — BiquadFilterNode",
+        "level": 2,
+        "content": "<h2><strong>6.3 Ecualización adaptativa — BiquadFilterNode</strong></h2><p>El sistema de ecualización implementa una cadena de cinco BiquadFilterNodes en serie, gestionados por AdaptiveEQManager. La cadena sigue el modelo estándar de ecualizador paramétrico de cuatro bandas con filtro pasa-altos:</p><ul><li>HPF — Filtro paso-alto (highpass): elimina frecuencias inferiores a 20 Hz (ruido DC e infrasónicos). Q = 0.707 (Butterworth).</li><li>Low Shelf — Realce/corte de graves (100 Hz, lowshelf): control de presencia en bajas frecuencias.</li><li>Mid 1 — Banda peaking a 500 Hz: control de presencia media-baja y «cuerpo».</li><li>Mid 2 — Banda peaking a 2000 Hz: control de presencia media-alta y «articulación».</li><li>High Shelf — Realce/corte de agudos (8000 Hz, highshelf): control de brillo y aire.</li></ul><p>La corrección adaptativa calcula el error por banda como la diferencia entre la respuesta medida y 0 dB (referencia plana), aplicando un factor de corrección limitado a ±12 dB para evitar distorsión:</p><table><tr><td><p>correction = clamp(-error, -12 dB, +6 dB)</p><p>node.gain.setTargetAtTime(correction, currentTime, timeConstant=0.1)</p></td></tr></table><p>El uso de setTargetAtTime evita clicks de audio al cambiar la ganancia de los filtros en tiempo real.</p>"
+      },
+      {
+        "id": "64-calibracion-acustica-prototipo-experimental",
+        "title": "6.4 Calibración acústica — Prototipo experimental",
+        "level": 2,
+        "content": "<h2><strong>6.4 Calibración acústica — Prototipo experimental</strong></h2><p>El módulo de calibración acústica se presenta explícitamente como un prototipo funcional orientado a demostrar técnicas de análisis de respuesta de sala en el navegador. Implementa dos métodos de excitación:</p><ul><li>Ruido rosa (Voss-McCartney, 7 generadores): señal de excitación de banda ancha con densidad espectral uniforme por octava, más adecuada que el ruido blanco para análisis perceptivo.</li><li>Sine sweep logarítmico (20 Hz → 20.000 Hz): permite el análisis de respuesta al impulso mediante deconvolución, aunque en este prototipo se utiliza únicamente para identificar picos y valles espectrales prominentes.</li></ul>"
+      }
+    ]
+  },
+  {
+    "id": "7-descripcion-de-modulos-funcionales",
+    "title": "7. Descripción de Módulos Funcionales",
+    "level": 1,
+    "content": "<h1><strong>7. Descripción de Módulos Funcionales</strong></h1>",
+    "subsections": [
+      {
+        "id": "71-modulo-analizador-espectral",
+        "title": "7.1 Módulo Analizador Espectral",
+        "level": 2,
+        "content": "<h2><strong>7.1 Módulo Analizador Espectral</strong></h2><p>El analizador espectral es el módulo central de FreqLens. Implementado en ProfessionalSpectrum.tsx con el núcleo de datos en SmartAnalyzer.ts, proporciona una visualización en tiempo real del espectro de potencia del audio capturado.</p><p>Características principales del módulo:</p><ul><li>Renderizado Canvas 2D a 60 fps sincronizado con requestAnimationFrame mediante el hook useAnimationFrame.ts.</li><li>Espectro de barras con escala logarítmica de frecuencias (20 Hz — 20.000 Hz).</li><li>Peak hold por bin con decaimiento temporal configurable.</li><li>Waveform (forma de onda) superpuesta en modo oscilloscope.</li><li>Métricas RMS y nivel de pico en dBFS actualizadas en tiempo real.</li><li>Gradiente de color espectral con acento naranja coherente con el sistema de diseño.</li></ul>"
+      },
+      {
+        "id": "72-modulo-afinador-cromatico",
+        "title": "7.2 Módulo Afinador Cromático",
+        "level": 2,
+        "content": "<h2><strong>7.2 Módulo Afinador Cromático</strong></h2><p>El afinador implementado en ProfessionalTuner.tsx (con procesamiento en yin-processor.ts y lógica en YinDSP.ts y PitchService.ts) proporciona detección de frecuencia fundamental con suavizado de lectura.</p><p>El flujo de datos del afinador opera de la siguiente manera: el AudioWorkletNode captura bloques de audio en el hilo real-time, ejecuta YinDSP sobre cada bloque y emite mensajes de tipo PITCH_DETECTED al hilo principal mediante el MessagePort del AudioWorklet. PitchService convierte la frecuencia detectada a nota musical, octava y desviación en cents. La UI presenta esta información mediante un medidor semicircular con zona central verde (afinado) y zonas laterales de color para indicar desviación hacia arriba o abajo.</p>"
+      },
+      {
+        "id": "73-modulo-de-ecualizacion-adaptativa",
+        "title": "7.3 Módulo de Ecualización Adaptativa",
+        "level": 2,
+        "content": "<h2><strong>7.3 Módulo de Ecualización Adaptativa</strong></h2><p>El módulo EQ, compuesto por AdaptiveEQControls.tsx, EQVisualizer.tsx y EQPresets.tsx, permite la configuración manual e interactiva de la cadena de BiquadFilterNodes gestionada por AdaptiveEQManager.</p><ul><li>EQVisualizer.tsx renderiza en Canvas la curva de respuesta de frecuencia calculada a partir de los parámetros actuales de cada filtro.</li><li>AdaptiveEQControls.tsx proporciona controles deslizantes para la ganancia de cada banda.</li><li>EQPresets.tsx ofrece presets predefinidos (Flat, Bass Boost, Presence, Air) que cargan configuraciones completas de la cadena de filtros.</li></ul>"
+      },
+      {
+        "id": "74-modulo-de-calibracion-acustica-prototipo",
+        "title": "7.4 Módulo de Calibración Acústica (Prototipo)",
+        "level": 2,
+        "content": "<h2><strong>7.4 Módulo de Calibración Acústica (Prototipo)</strong></h2><p>El módulo de calibración, implementado en EQCalibration.tsx y CalibrationService.ts, implementa como prototipo funcional simplificado las siguientes capacidades de análisis de sala:</p><ul><li>Generación y reproducción de ruido rosa mediante el algoritmo Voss-McCartney con 7 generadores de ruido independientes, que producen una señal con caída de -3 dB/octava característica del ruido rosa.</li><li>Generación de sine sweep logarítmico de 20 Hz a 20.000 Hz con duración configurable, cuya ecuación de fase garantiza velocidad constante en escala logarítmica.</li><li>Captura de respuesta del micrófono durante la excitación y análisis mediante el AnalyserNode.</li><li>Cálculo de corrección EQ inversa aplicada a la cadena de BiquadFilterNodes.</li></ul><p>Este módulo se documenta como prototipo experimental. Las mediciones obtenidas tienen validez cualitativa y orientativa, no cuantitativa ni profesional.</p>"
+      }
+    ]
+  },
+  {
+    "id": "8-pruebas-y-validacion",
+    "title": "8. Pruebas y Validación",
+    "level": 1,
+    "content": "<h1><strong>8. Pruebas y Validación</strong></h1>",
+    "subsections": [
+      {
+        "id": "81-pruebas-unitarias-logica-dsp",
+        "title": "8.1 Pruebas unitarias — Lógica DSP",
+        "level": 2,
+        "content": "<h2><strong>8.1 Pruebas unitarias — Lógica DSP</strong></h2><p>La lógica de procesamiento de señal implementada en YinDSP.ts y PitchService.ts ha sido verificada mediante pruebas unitarias de caja blanca sobre las funciones puras del algoritmo YIN:</p><table><thead><tr><th><p><strong>ID</strong></p></th><th><p><strong>Prueba</strong></p></th><th><p><strong>Entrada</strong></p></th><th><p><strong>Resultado esperado</strong></p></th><th><p><strong>Estado</strong></p></th></tr></thead><tbody><tr><td><p>TU-01</p></td><td><p>YinDSP.difference()</p></td><td><p>Buffer sinusoidal 440 Hz, τ=períodoEsperado</p></td><td><p>Diferencia ≈ 0 en el período fundamental</p></td><td><p>Superado</p></td></tr><tr><td><p>TU-02</p></td><td><p>YinDSP.cumulativeMeanNormalizedDifference()</p></td><td><p>Buffer de diferencias conocidas</p></td><td><p>CMNDF[0] = 1, valores ≤ 1 en región fundamental</p></td><td><p>Superado</p></td></tr><tr><td><p>TU-03</p></td><td><p>YinDSP.absoluteThreshold()</p></td><td><p>CMNDF con mínimo claro en τ=100</p></td><td><p>Retorna τ=100</p></td><td><p>Superado</p></td></tr><tr><td><p>TU-04</p></td><td><p>YinDSP.parabolicInterpolation()</p></td><td><p>τ=50 con α=0.2, β=0.1, γ=0.15</p></td><td><p>τ_mejor entre 49 y 51</p></td><td><p>Superado</p></td></tr><tr><td><p>TU-05</p></td><td><p>PitchService: 440 Hz → A4</p></td><td><p>Entrada: 440.0 Hz</p></td><td><p>Nota: A, Octava: 4, Cents: 0</p></td><td><p>Superado</p></td></tr><tr><td><p>TU-06</p></td><td><p>PitchService: 261.63 Hz → C4</p></td><td><p>Entrada: 261.63 Hz</p></td><td><p>Nota: C, Octava: 4, Cents ≈ 0</p></td><td><p>Superado</p></td></tr><tr><td><p>TU-07</p></td><td><p>PitchService: 445 Hz → A4+19c</p></td><td><p>Entrada: 445.0 Hz</p></td><td><p>Nota: A, Octava: 4, Cents: +19 aprox.</p></td><td><p>Superado</p></td></tr></tbody></table>"
+      },
+      {
+        "id": "82-pruebas-de-integracion-cadena-de-audio",
+        "title": "8.2 Pruebas de integración — Cadena de audio",
+        "level": 2,
+        "content": "<h2><strong>8.2 Pruebas de integración — Cadena de audio</strong></h2><table><thead><tr><th><p><strong>ID</strong></p></th><th><p><strong>Prueba</strong></p></th><th><p><strong>Acción</strong></p></th><th><p><strong>Resultado esperado</strong></p></th><th><p><strong>Estado</strong></p></th></tr></thead><tbody><tr><td><p>TI-01</p></td><td><p>Inicialización AudioContext</p></td><td><p>Llamada a AudioManager.getInstance().initialize()</p></td><td><p>AudioContext en estado 'running', AnalyserNode conectado</p></td><td><p>Superado</p></td></tr><tr><td><p>TI-02</p></td><td><p>Cadena EQ activa</p></td><td><p>Initialize + AdaptiveEQManager.connect()</p></td><td><p>5 BiquadFilterNodes en cadena, señal pasa sin distorsión</p></td><td><p>Superado</p></td></tr><tr><td><p>TI-03</p></td><td><p>AudioWorklet YIN</p></td><td><p>Inicialización + audio sinusoidal de 440 Hz</p></td><td><p>Mensaje PITCH_DETECTED con f0 ≈ 440 Hz en &lt;200ms</p></td><td><p>Superado</p></td></tr><tr><td><p>TI-04</p></td><td><p>Calibración ruido rosa</p></td><td><p>CalibrationService.runPinkNoise(5)</p></td><td><p>Buffer Float32Array de 5s generado y reproducido</p></td><td><p>Superado</p></td></tr><tr><td><p>TI-05</p></td><td><p>Build de producción</p></td><td><p>npm run build</p></td><td><p>Dist generada sin errores TypeScript ni Vite</p></td><td><p>Superado</p></td></tr></tbody></table>"
+      },
+      {
+        "id": "83-pruebas-de-compatibilidad-de-navegadores",
+        "title": "8.3 Pruebas de compatibilidad de navegadores",
+        "level": 2,
+        "content": "<h2><strong>8.3 Pruebas de compatibilidad de navegadores</strong></h2><table><thead><tr><th><p><strong>Navegador</strong></p></th><th><p><strong>APIs clave verificadas</strong></p></th><th><p><strong>Compatibilidad</strong></p></th><th><p><strong>Observaciones</strong></p></th></tr></thead><tbody><tr><td><p>Chrome 124+</p></td><td><p>Web Audio API, AudioWorklet, Canvas 2D, getUserMedia</p></td><td><p>Completo</p></td><td><p>Funcionamiento correcto en todos los módulos</p></td></tr><tr><td><p>Firefox 125+</p></td><td><p>Web Audio API, AudioWorklet, Canvas 2D, getUserMedia</p></td><td><p>Completo</p></td><td><p>Pequeñas diferencias en latencia de AudioWorklet</p></td></tr><tr><td><p>Safari 17+ (iOS)</p></td><td><p>Web Audio API limitada, AudioWorklet, Canvas 2D</p></td><td><p>Parcial</p></td><td><p>EQ operativa; calibración requiere interacción previa del usuario</p></td></tr><tr><td><p>Edge 124+</p></td><td><p>Basado en Chromium: equivalente a Chrome</p></td><td><p>Completo</p></td><td><p>Funcionamiento idéntico a Chrome</p></td></tr></tbody></table>"
+      },
+      {
+        "id": "84-pruebas-de-usuario",
+        "title": "8.4 Pruebas de usuario",
+        "level": 2,
+        "content": "<h2><strong>8.4 Pruebas de usuario</strong></h2><p>Se realizaron sesiones de prueba de usuario con tres perfiles distintos para validar la usabilidad de la interfaz:</p><table><thead><tr><th><p><strong>ID</strong></p></th><th><p><strong>Perfil</strong></p></th><th><p><strong>Tarea</strong></p></th><th><p><strong>Resultado</strong></p></th><th><p><strong>Valoración</strong></p></th></tr></thead><tbody><tr><td><p>U-01</p></td><td><p>Músico amateur</p></td><td><p>Afinar guitarra acústica con el módulo Afinador</p></td><td><p>El afinador detectó A4, E2, D3 en menos de 2 segundos de estabilización. La visualización semicircular fue considerada intuitiva.</p></td><td><p>Satisfactorio</p></td></tr><tr><td><p>U-02</p></td><td><p>Estudiante DAM</p></td><td><p>Explorar el analizador espectral con voz y música</p></td><td><p>Identificó correctamente los picos espectrales de la voz. Solicitó etiquetas de frecuencias adicionales en el eje X.</p></td><td><p>Satisfactorio con mejora</p></td></tr><tr><td><p>U-03</p></td><td><p>Usuario no técnico</p></td><td><p>Acceder a la aplicación desde móvil y navegar por los módulos</p></td><td><p>Navegación por tabs correcta. Solicitó texto de ayuda contextual en el módulo de calibración.</p></td><td><p>Satisfactorio con mejora</p></td></tr></tbody></table>"
+      }
+    ]
+  },
+  {
+    "id": "9-planificacion-y-seguimiento",
+    "title": "9. Planificación y Seguimiento",
+    "level": 1,
+    "content": "<h1><strong>9. Planificación y Seguimiento</strong></h1><p>El desarrollo se organizó en nueve fases iterativas, con entregables concretos al final de cada una. La tabla refleja el plan real ejecutado, coherente con el estado actual del repositorio.</p><table><thead><tr><th><p><strong>Fase</strong></p></th><th><p><strong>Período</strong></p></th><th><p><strong>Nombre</strong></p></th><th><p><strong>Trabajo realizado</strong></p></th><th><p><strong>Estado</strong></p></th></tr></thead><tbody><tr><td><p>Fase 1</p></td><td><p>1–3 abril</p></td><td><p>Investigación y setup</p></td><td><p>Estudio Web Audio API, FFT, YIN. Configuración React + TypeScript + Vite + Tailwind. Estructura inicial de repositorio.</p></td><td><p>Completada</p></td></tr><tr><td><p>Fase 2</p></td><td><p>4–7 abril</p></td><td><p>Núcleo de audio</p></td><td><p>AudioContext, captura de micrófono, gestión de permisos, hook useAudio, control de lifecycle del stream.</p></td><td><p>Completada</p></td></tr><tr><td><p>Fase 3</p></td><td><p>8–14 abril</p></td><td><p>Analizador espectral</p></td><td><p>FFT con AnalyserNode, renderizado Canvas en tiempo real, escala logarítmica, peak hold, métricas RMS/pico.</p></td><td><p>Completada</p></td></tr><tr><td><p>Fase 4</p></td><td><p>15–21 abril</p></td><td><p>Afinador cromático</p></td><td><p>AudioWorklet YIN, PitchService, conversión nota/octava/cents, suavizado jitter, UI medidor semicircular.</p></td><td><p>Completada</p></td></tr><tr><td><p>Fase 5</p></td><td><p>22–25 abril</p></td><td><p>Arquitectura y refactor</p></td><td><p>Separación core/features/hooks, modularización DSP, managers Singleton, tipado TypeScript estricto.</p></td><td><p>Completada</p></td></tr><tr><td><p>Fase 6</p></td><td><p>26 abr – 5 may</p></td><td><p>EQ adaptativa</p></td><td><p>BiquadFilterNode chain, presets, AdaptiveEQManager, EQVisualizer, calibración experimental.</p></td><td><p>Completada</p></td></tr><tr><td><p>Fase 7</p></td><td><p>6–12 mayo</p></td><td><p>Interfaz final y UX</p></td><td><p>Navegación tabs, diseño minimalista, responsive móvil, tokens visuales, integración módulos.</p></td><td><p>Completada</p></td></tr><tr><td><p>Fase 8</p></td><td><p>13–18 mayo</p></td><td><p>Testing y estabilización</p></td><td><p>Pruebas manuales, corrección errores, optimización Safari/iOS, limpieza código, build producción.</p></td><td><p>Completada</p></td></tr><tr><td><p>Fase 9</p></td><td><p>19–28 mayo</p></td><td><p>Memoria y entrega final</p></td><td><p>Documento maestro, diagramas, capturas, conclusiones, revisión tutor, preparación defensa.</p></td><td><p>En progreso</p></td></tr></tbody></table>",
+    "subsections": []
+  },
+  {
+    "id": "10-conclusiones",
+    "title": "10. Conclusiones",
+    "level": 1,
+    "content": "<h1><strong>10. Conclusiones</strong></h1>",
+    "subsections": [
+      {
+        "id": "101-logros-tecnicos",
+        "title": "10.1 Logros técnicos",
+        "level": 2,
+        "content": "<h2><strong>10.1 Logros técnicos</strong></h2><p>FreqLens demuestra de forma práctica que la Web Audio API es una plataforma suficientemente madura para construir herramientas de procesamiento de señal digital complejas en el navegador. Los cuatro módulos funcionales entregados —analizador espectral, afinador cromático, ecualización adaptativa y calibración acústica— operan en tiempo real sin backend, sin instalación y con latencia mínima.</p><p>La implementación del algoritmo YIN en un AudioWorkletProcessor es, en sí misma, un ejercicio técnicamente relevante: separa el procesamiento de señal del hilo principal de JavaScript, garantizando estabilidad de audio independientemente de la carga de la UI.</p><p>La arquitectura modular adoptada —con separación clara entre core, features, hooks, components y utils— permite la extensión del sistema sin acoplamientos no deseados, y el uso de TypeScript estricto garantiza la integridad del grafo de nodos de audio en tiempo de compilación.</p>"
+      },
+      {
+        "id": "102-limitaciones-del-prototipo",
+        "title": "10.2 Limitaciones del prototipo",
+        "level": 2,
+        "content": "<h2><strong>10.2 Limitaciones del prototipo</strong></h2><p>El módulo de calibración acústica es un prototipo funcional con limitaciones intrínsecas respecto a soluciones profesionales: la medición de respuesta de sala mediante el micrófono del dispositivo está condicionada por la respuesta en frecuencia del propio micrófono y del altavoz de reproducción, factores que no se compensan en esta versión. Las correcciones aplicadas tienen, por tanto, carácter orientativo y no cuantitativo.</p><p>La detección de pitch con YIN funciona de forma fiable para señales monofónicas con un nivel de señal suficiente. En entornos con ruido de fondo elevado o para señales polifónicas, la detección puede ser inestable, lo cual es una limitación conocida del algoritmo documentada en la literatura.</p>"
+      },
+      {
+        "id": "103-lineas-de-trabajo-futuro",
+        "title": "10.3 Líneas de trabajo futuro",
+        "level": 2,
+        "content": "<h2><strong>10.3 Líneas de trabajo futuro</strong></h2><ul><li>Implementación de análisis de respuesta al impulso (IR) mediante deconvolución para mejorar la calibración acústica.</li><li>Soporte de detección de pitch polifónico mediante algoritmos como pYIN o CREPE (modelo de red neuronal ligero).</li><li>Exportación de respuesta de frecuencia medida en formatos estándar (CSV, REW format).</li><li>Mejora de la accesibilidad de la interfaz: modo alto contraste, navegación completa por teclado, soporte de lectores de pantalla.</li><li>Integración de MIDI Web API para enviar datos de pitch a DAWs y sintetizadores externos.</li></ul>"
+      }
+    ]
+  },
+  {
+    "id": "11-referencias",
+    "title": "11. Referencias",
+    "level": 1,
+    "content": "<h1><strong>11. Referencias</strong></h1>",
+    "subsections": [
+      {
+        "id": "111-referencias-academicas",
+        "title": "11.1 Referencias académicas",
+        "level": 2,
+        "content": "<h2><strong>11.1 Referencias académicas</strong></h2><ol><li>De Cheveigné, A., &amp; Kawahara, H. (2002). YIN, a fundamental frequency estimator for speech and music. Journal of the Acoustical Society of America, 111(4), 1917–1930.</li><li>Voss, R. F., &amp; Clarke, J. (1978). '1/f noise' in music: Music from 1/f noise. Journal of the Acoustical Society of America, 63(1), 258–263.</li><li>Smith, J. O. (2007). Introduction to Digital Filters with Audio Applications. W3K Publishing. Disponible en: https://ccrma.stanford.edu/~jos/filters/</li><li>Zölzer, U. (2011). DAFX: Digital Audio Effects (2nd ed.). Wiley.</li></ol>"
+      },
+      {
+        "id": "112-documentacion-tecnica",
+        "title": "11.2 Documentación técnica",
+        "level": 2,
+        "content": "<h2><strong>11.2 Documentación técnica</strong></h2><ol><li>MDN Web Docs — Web Audio API. https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API</li><li>MDN Web Docs — AudioWorklet. https://developer.mozilla.org/en-US/docs/Web/API/AudioWorklet</li><li>W3C — Web Audio API Specification. https://www.w3.org/TR/webaudio/</li><li>React 19 — Release Notes. https://react.dev/blog/2024/12/05/react-19</li><li>Vite 8 — Documentation. https://vite.dev/</li><li>Tailwind CSS v4 — Documentation. https://tailwindcss.com/docs/v4-beta</li></ol>"
+      },
+      {
+        "id": "113-repositorio-del-proyecto",
+        "title": "11.3 Repositorio del proyecto",
+        "level": 2,
+        "content": "<h2><strong>11.3 Repositorio del proyecto</strong></h2><p>El código fuente completo del proyecto, incluyendo el historial de commits organizado por fases de desarrollo, se encuentra disponible en el repositorio Git del proyecto. El build de producción está desplegado mediante Vercel con HTTPS habilitado, requisito indispensable para el acceso a getUserMedia en contextos seguros.</p><p><em>FreqLens · Documento Maestro TFG · Ezel Alexander Duque Arias · DAM 2026</em></p><p>Fecha de emisión del documento: mayo 2026</p>"
+      }
+    ]
+  }
+]

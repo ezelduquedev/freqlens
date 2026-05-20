@@ -1,351 +1,869 @@
-/* eslint-disable react-hooks/purity */
-import { useState, useEffect } from 'react'
-import { AdaptiveEQManager } from '../../core/audio/AdaptiveEQManager'
-import { Save, Trash2, Share2, Download, X, Activity, FolderPlus } from 'lucide-react'
+import { useState, useEffect } from 'react';
+import { Sliders, RefreshCw, Check, Pencil } from 'lucide-react';
+import { AdaptiveEQManager } from '../../core/audio/AdaptiveEQManager';
+import { RoomProfileStorage, type RoomProfile } from '../../core/audio/RoomProfileStorage';
+import { PresetStorage, type Preset } from './PresetStorage';
 
-interface Preset {
-  name: string
-  description: string
-  values: { [key: string]: number }
-}
-
-const DEFAULT_PRESETS: Preset[] = [
+const PRESETS: Preset[] = [
   {
-    name: 'Plano (Flat)',
-    description: 'Reseteo completo a 0dB para referencia neutra.',
-    values: { 'hpf': 20, 'low-shelf': 0, 'mid-1': 0, 'mid-2': 0, 'high-shelf': 0 }
+    id: 'flat',
+    name: 'Plano',
+    description: 'REFERENCIA DE RESPUESTA PLANA ESTÁNDAR PARA MEZCLA NEUTRA.',
+    values: { 'hpf': 20, 'low-shelf': 0, 'mid-1': 0, 'mid-2': 0, 'high-shelf': 0 },
+    icon: 'flat'
   },
   {
+    id: 'podcast',
     name: 'Voz / Podcast',
-    description: 'Claridad para diálogos. HPF a 80Hz y boost en medios-altos.',
-    values: { 'hpf': 80, 'low-shelf': -2, 'mid-1': 0, 'mid-2': 3, 'high-shelf': 1 }
+    description: 'CLARIDAD EN VOCES Y DIÁLOGOS. ATENÚA GRAVES DE MICRÓFONO Y REALZA PRESENCIA.',
+    values: { 'hpf': 80, 'low-shelf': -2, 'mid-1': -1, 'mid-2': 3, 'high-shelf': 1.5 },
+    icon: 'podcast'
   },
   {
-    name: 'Música Pop',
-    description: 'Curva en V: Bajos profundos y agudos brillantes.',
-    values: { 'hpf': 30, 'low-shelf': 4, 'mid-1': -2, 'mid-2': -1, 'high-shelf': 4 }
+    id: 'pop',
+    name: 'Música Pop V-Curve',
+    description: 'SMILE CURVE CLÁSICA: REALCE SUTIL EN AGUDOS Y SUBGRAVES.',
+    values: { 'hpf': 25, 'low-shelf': 3.5, 'mid-1': -1.5, 'mid-2': -0.8, 'high-shelf': 3.5 },
+    icon: 'pop'
   },
   {
-    name: 'Sala Pequeña',
-    description: 'Corrección típica para modos de sala pequeños (125-250Hz).',
-    values: { 'hpf': 40, 'low-shelf': -4, 'mid-1': -3, 'mid-2': 0, 'high-shelf': 1 }
-  },
-  {
-    name: 'Monitor Flat',
-    description: 'Optimizado para mezcla analítica en estudio.',
-    values: { 'hpf': 20, 'low-shelf': 0, 'mid-1': 0.5, 'mid-2': 0, 'high-shelf': -0.5 }
-  },
-  {
-    name: 'Hi-Fi Listening',
-    description: 'Smile curve suave para escucha placentera.',
-    values: { 'hpf': 20, 'low-shelf': 2, 'mid-1': -1, 'mid-2': 0, 'high-shelf': 3 }
-  },
-  {
-    name: 'Graves Reforzados',
-    description: 'Énfasis en sub-graves y pegada.',
-    values: { 'hpf': 25, 'low-shelf': 6, 'mid-1': 1, 'mid-2': 0, 'high-shelf': -2 }
-  },
-  {
-    name: 'Claridad Vocal',
-    description: 'Boost en presencia (3-5kHz) y corte en fango.',
-    values: { 'hpf': 100, 'low-shelf': -3, 'mid-1': -2, 'mid-2': 4, 'high-shelf': 2 }
+    id: 'hifi',
+    name: 'Hi-Fi Master',
+    description: 'CURVA OPTIMIZADA PARA ESCUCHA DE ALTA DEFINICIÓN PLACENTERA.',
+    values: { 'hpf': 20, 'low-shelf': 1.5, 'mid-1': -0.5, 'mid-2': 0, 'high-shelf': 2.0 },
+    icon: 'hifi'
   }
-]
+];
 
-const generatePresetPath = (values: Record<string, number>): string => {
-  const bands = [
-    { freq: 20, gain: values['hpf'] || 0 },
-    { freq: 100, gain: values['low-shelf'] || 0 },
-    { freq: 500, gain: values['mid-1'] || 0 },
-    { freq: 2000, gain: values['mid-2'] || 0 },
-    { freq: 8000, gain: values['high-shelf'] || 0 },
-    { freq: 20000, gain: values['high-shelf'] || 0 }
-  ]
-  
-  const logMin = Math.log10(20)
-  const logMax = Math.log10(20000)
-  
-  const points = bands.map(b => {
-    const x = ((Math.log10(b.freq) - logMin) / (logMax - logMin)) * 100
-    const y = 10 - (b.gain * (10 / 12)) // Mapear -12..12 a 20..0
-    return { x, y }
-  })
-  
-  let path = `M ${points[0].x},${points[0].y}`
-  for (let i = 1; i < points.length; i++) {
-    const p0 = points[i - 1]
-    const p1 = points[i]
-    const cx = (p0.x + p1.x) / 2
-    path += ` C ${cx},${p0.y} ${cx},${p1.y} ${p1.x},${p1.y}`
+const USER_ICONS = [
+  { id: 'custom_1', name: 'Auriculares' },
+  { id: 'custom_2', name: 'Escudo' },
+  { id: 'custom_3', name: 'Espacio' },
+  { id: 'custom_4', name: 'Extra' }
+];
+
+const getPresetIconUrl = (preset: Preset) => {
+  if (preset.icon) {
+    return `/preset-icons/${preset.icon}.svg`;
   }
-  return path
+  if (preset.id === 'flat' || preset.id === 'podcast' || preset.id === 'pop' || preset.id === 'hifi') {
+    return `/preset-icons/${preset.id}.svg`;
+  }
+  return `/preset-icons/custom_1.svg`;
+};
+
+interface EQPresetsProps {
+  onPresetApply: () => void;
+  variant?: 'compact' | 'full';
 }
 
-export const EQPresets = ({ onPresetApply }: { onPresetApply: () => void }) => {
-  const eqManager = AdaptiveEQManager.getInstance()
+const getDynamicDescription = (profile: RoomProfile, presetId: string): string => {
+  const isControlRoom = profile.name.toLowerCase().includes('control') || 
+                        profile.name.toLowerCase().includes('studio') || 
+                        profile.name.toLowerCase().includes('estudio') ||
+                        profile.id === 'mock-1';
+
+  const isUntreated = profile.name.toLowerCase().includes('dormitorio') || 
+                      profile.name.toLowerCase().includes('cama') || 
+                      profile.name.toLowerCase().includes('habitacion') ||
+                      profile.name.toLowerCase().includes('no tratado') ||
+                      profile.id === 'mock-2';
+
+  if (isControlRoom) {
+    switch (presetId) {
+      case 'flat':
+        return 'RESPUESTA PLANA Y NEUTRA APLICADA EN CONTROL ROOM. IDEAL PARA MEZCLA EXACTA Y ANÁLISIS DE REFERENCIA SIN COLORACIÓN ACÚSTICA.';
+      case 'podcast':
+        return 'MODO VOZ EN CONTROL ROOM. CORRECCIÓN DE GRAVES FILTRADA Y PRESENCIA DETALLADA PARA CONTROL DE VOCES CRISTALINAS SIN COLORACIÓN DE FONDO.';
+      case 'pop':
+        return 'RESPUESTA POP V-CURVE EN SALA DE CONTROL. SUBGRAVES REDONDEADOS Y AGUDOS AIROSOS PARA UNA ESCUCHA COMERCIAL EMOCIONANTE Y DINÁMICA.';
+      case 'hifi':
+        return 'MODO HI-FI MASTER EN SALA DE CONTROL. OPTIMIZACIÓN AUDIÓFILA SUTIL CON DISFRUTE PLACENTERO DE ALTA FIDELIDAD Y MÁXIMO RANGO DINÁMICO.';
+      case profile.id:
+        return 'CORRECCIÓN DE SALA ACTIVA EN CONTROL ROOM. COMPENSACIÓN INVERSA TOTALMENTE PLANA BASADA EN LA ACÚSTICA FÍSICA PROPIA DEL ESTUDIO.';
+      default:
+        return profile.notes || 'SALA DE CONTROL PRINCIPAL CON RESPUESTA ACÚSTICA OPTIMIZADA PARA MONITOREO DE REFERENCIA.';
+    }
+  }
+
+  if (isUntreated) {
+    switch (presetId) {
+      case 'flat':
+        return 'RESPUESTA PLANA APLICADA A ENTORNO HABITACIONAL. LA COMPENSACIÓN SUAVIZA EL BOOMY, PERO LA FALTA DE TRATAMIENTO PUEDE REDUCIR LA PRECISIÓN DE GRAVES.';
+      case 'podcast':
+        return 'OPTIMIZACIÓN DE PODCAST EN DORMITORIO. FILTRADO HPF CRÍTICO APLICADO PARA ELIMINAR EL COPLE DE LA SALA NO TRATADA Y RESALTAR LA VOZ.';
+      case 'pop':
+        return 'COLORACIÓN ENERGÉTICA EN DORMITORIO. LA CURVA POP EN V ENMASCARA EL DESBALANCE ACÚSTICO DE LA SALA CON UN SONIDO DIVERTIDO Y DINÁMICO.';
+      case 'hifi':
+        return 'ESCUCHA RELAJADA EN DORMITORIO. APORTA CALIDEZ A LAS FRECUENCIAS MEDIAS Y REDUCE LA FATIGA AUDITIVA COMPENSANDO LOS PUNTOS MÁS DUROS DEL ESPACIO.';
+      case profile.id:
+        return 'CALIBRACIÓN ACÚSTICA ACTIVA EN DORMITORIO. CORRECCIÓN AGRESIVA DE RESONANCIAS DE PAREDES Y GRAVES SUCIOS PARA LOGRAR MÁXIMA NEUTRALIDAD.';
+      default:
+        return profile.notes || 'ENTORNO DE ESCUCHA NO TRATADO. SE SUGIERE CORRECCIÓN PARAMÉTRICA PARA COMPENSAR LAS RESONANCIAS DE LA HABITACIÓN.';
+    }
+  }
+
+  // Fallback for custom calibrated profiles
+  switch (presetId) {
+    case 'flat':
+      return `REFERENCIA PLANA APLICADA A ${profile.name.toUpperCase()}. CALIBRACIÓN ESTÁNDAR PARA LOGRAR EL PUNTO DE MEZCLA MÁS NEUTRO POSIBLE.`;
+    case 'podcast':
+      return `MODO PODCAST ACTIVO EN ${profile.name.toUpperCase()}. ENFATIZA EL RANGO DE LA VOZ Y ELIMINA RESONANCIAS DE GRAVES MEDIOS EN ESTA SALA.`;
+    case 'pop':
+      return `PERFIL POP / V-CURVE EN ${profile.name.toUpperCase()}. SONIDO ENERGIZADO CON GRAVES ENRIQUECIDOS Y AGUDOS REALZADOS PARA PROBAR MEZCLAS COMERCIALES.`;
+    case 'hifi':
+      return `AJUSTE AUDIÓFILO HI-FI EN ${profile.name.toUpperCase()}. EQUILIBRIO PERFECTO DE CALIDEZ Y SUTILEZA PARA LOGRAR UNA ESCUCHA PLACENTERA Y EQUILIBRADA.`;
+    case profile.id:
+      return `CALIBRACIÓN ACÚSTICA PROPIA ACTIVA EN ${profile.name.toUpperCase()}. COMPENSANDO RESONANCIAS FÍSICAS DE ACUERDO A LA MEDICIÓN DE LA SALA.`;
+    default:
+      return profile.notes || `PERFIL ACÚSTICO DE ${profile.name.toUpperCase()}. RESPUESTA DE FRECUENCIA CONFIGURADA DE ACUERDO AL ENTORNO FÍSICO.`;
+  }
+};
+
+export const EQPresets = ({ onPresetApply, variant = 'full' }: EQPresetsProps) => {
+  const eqManager = AdaptiveEQManager.getInstance();
   
-  const [customPresets, setCustomPresets] = useState<Preset[]>([])
-  const [selectedPresetName, setSelectedPresetName] = useState<string>(DEFAULT_PRESETS[0].name)
-  const [showSaveModal, setShowSaveModal] = useState(false)
-  const [newPresetName, setNewPresetName] = useState('')
-  const [successMessage, setSuccessMessage] = useState('')
+  // Basic State
+  const [selectedId, setSelectedId] = useState<string>('flat');
+  const [profiles, setProfiles] = useState<RoomProfile[]>([]);
+  const [customPresets, setCustomPresets] = useState<Preset[]>([]);
+  const [roomDiagnostic, setRoomDiagnostic] = useState<string>(
+    'RESPUESTA DE SALA ACTIVA. APLIQUE UN PERFIL O PRESET PARA COMPENSAR LA RESPUESTA DE FRECUENCIA.'
+  );
+  const [descriptionOverrides, setDescriptionOverrides] = useState<{ [id: string]: string }>({});
 
-  // Combined Presets List
-  const allPresets = [...DEFAULT_PRESETS, ...customPresets]
-  const currentPreset = allPresets.find(p => p.name === selectedPresetName) || DEFAULT_PRESETS[0]
+  // Modals / Editing state
+  const [editPresetId, setEditPresetId] = useState<string>('');
+  const [editPresetName, setEditPresetName] = useState<string>('');
+  const [editDescription, setEditDescription] = useState<string>('');
+  const [editPresetIcon, setEditPresetIcon] = useState<string>('custom_1');
+  const [editPresetNameInput, setEditPresetNameInput] = useState<string>('');
 
-  // Load Custom Presets from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('freqlens_custom_presets')
-    if (saved) {
+  const [editRoomId, setEditRoomId] = useState<string>('');
+  const [editRoomName, setEditRoomName] = useState<string>('');
+  const [editRoomNotes, setEditRoomNotes] = useState<string>('');
+
+  const [showAddPreset, setShowAddPreset] = useState<boolean>(false);
+  const [newPresetName, setNewPresetName] = useState<string>('');
+  const [newPresetDescription, setNewPresetDescription] = useState<string>('');
+  const [newPresetIcon, setNewPresetIcon] = useState<string>('custom_1');
+
+  const [showAddRoom, setShowAddRoom] = useState<boolean>(false);
+  const [newRoomName, setNewRoomName] = useState<string>('');
+  const [newRoomDescription, setNewRoomDescription] = useState<string>('');
+
+  const loadData = () => {
+    const list = RoomProfileStorage.getAllProfiles();
+    setProfiles(list);
+    
+    const savedPresets = PresetStorage.getAll();
+    setCustomPresets(savedPresets);
+
+    const rawOverrides = localStorage.getItem('freqlens_description_overrides');
+    if (rawOverrides) {
       try {
-        setCustomPresets(JSON.parse(saved))
+        setDescriptionOverrides(JSON.parse(rawOverrides));
       } catch (e) {
-        console.error('Failed to load custom presets', e)
+        console.error(e);
       }
     }
-  }, [])
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [onPresetApply]);
+
+  useEffect(() => {
+    if (profiles.length > 0) {
+      const activeProf = profiles.find(p => p.id === selectedId) || profiles[0];
+      const issuesMsg = activeProf.issues.map(iss => iss.message).join('. ');
+      const notes = getDynamicDescription(activeProf, selectedId);
+      const customOverrideNote = descriptionOverrides[selectedId] || activeProf.notes || '';
+      const finalNote = customOverrideNote ? customOverrideNote : notes;
+      setRoomDiagnostic(`${finalNote.toUpperCase()} ${issuesMsg.toUpperCase()}`);
+    } else {
+      setRoomDiagnostic('RESPUESTA DE SALA ACTIVA. APLIQUE UN PERFIL O PRESET PARA COMPENSAR LA RESPUESTA DE FRECUENCIA.');
+    }
+  }, [selectedId, profiles, descriptionOverrides]);
+
+  const getCurrentEQValues = () => {
+    const values: { [key: string]: number } = {};
+    eqManager.getBands().forEach(band => {
+      if (band.id === 'hpf') {
+        values[band.id] = band.frequency;
+      } else {
+        values[band.id] = band.gain;
+      }
+    });
+    return values;
+  };
+
+  // Handlers
+  const handleAddPreset = () => {
+    const id = 'custom-' + Date.now().toString();
+    const preset: Preset = {
+      id,
+      name: newPresetName || 'Preset Personalizado',
+      description: newPresetDescription || 'Preset de usuario personalizado.',
+      values: getCurrentEQValues(),
+      icon: newPresetIcon || 'custom_1'
+    };
+    PresetStorage.save(preset);
+    setShowAddPreset(false);
+    setNewPresetName('');
+    setNewPresetDescription('');
+    setNewPresetIcon('custom_1');
+    loadData();
+  };
+
+  const handleEditPresetSave = () => {
+    if (!editPresetId) return;
+    
+    // Update local overrides first (works for all presets)
+    const newOverrides = { ...descriptionOverrides, [editPresetId]: editDescription };
+    localStorage.setItem('freqlens_description_overrides', JSON.stringify(newOverrides));
+    setDescriptionOverrides(newOverrides);
+    
+    // If it's a custom preset, update it in custom storage too
+    if (editPresetId.startsWith('custom-')) {
+      const savedPresets = PresetStorage.getAll();
+      const targetPreset = savedPresets.find(p => p.id === editPresetId);
+      if (targetPreset) {
+        targetPreset.name = editPresetNameInput || targetPreset.name;
+        targetPreset.description = editDescription;
+        targetPreset.icon = editPresetIcon;
+        PresetStorage.save(targetPreset);
+      }
+    } else {
+      PresetStorage.updateDescription(editPresetId, editDescription);
+    }
+    
+    setEditPresetId('');
+    loadData();
+  };
+
+  const handleAddRoom = () => {
+    const id = 'room-' + Date.now().toString();
+    const profile: RoomProfile = {
+      id,
+      name: newRoomName || 'Nueva Sala Calibrada',
+      date: new Date().toLocaleDateString('es-ES'),
+      timestamp: Date.now(),
+      averageRMS: -40.0,
+      acousticRating: 'Tratable',
+      issues: [],
+      eqValues: getCurrentEQValues(),
+      notes: newRoomDescription || 'Perfil de sala calibrado por el usuario.'
+    };
+    RoomProfileStorage.saveProfile(profile);
+    setShowAddRoom(false);
+    setNewRoomName('');
+    setNewRoomDescription('');
+    loadData();
+  };
+
+  const handleEditRoomSave = () => {
+    if (!editRoomId) return;
+    
+    const profilesList = RoomProfileStorage.getAllProfiles();
+    const targetProfile = profilesList.find(p => p.id === editRoomId);
+    if (targetProfile) {
+      targetProfile.notes = editRoomNotes;
+      RoomProfileStorage.saveProfile(targetProfile);
+    }
+    
+    // Also save in general overrides just in case description check looks there
+    const newOverrides = { ...descriptionOverrides, [editRoomId]: editRoomNotes };
+    localStorage.setItem('freqlens_description_overrides', JSON.stringify(newOverrides));
+    setDescriptionOverrides(newOverrides);
+
+    setEditRoomId('');
+    loadData();
+  };
 
   const applyPreset = (preset: Preset) => {
     Object.entries(preset.values).forEach(([id, val]) => {
-      eqManager.setBandGain(id, val)
-    })
-    setSelectedPresetName(preset.name)
-    onPresetApply()
+      if (id === 'hpf') {
+        eqManager.setBandFrequency(id, val);
+        eqManager.setBandGain(id, 0);
+      } else {
+        eqManager.setBandGain(id, val);
+      }
+    });
+    setSelectedId(preset.id);
+    onPresetApply();
+  };
+
+  const applyProfile = (profile: RoomProfile) => {
+    Object.entries(profile.eqValues).forEach(([id, val]) => {
+      if (id === 'hpf') {
+        eqManager.setBandFrequency(id, val > 30 ? val : 20);
+        eqManager.setBandGain(id, 0);
+      } else {
+        eqManager.setBandGain(id, val);
+      }
+    });
+    setSelectedId(profile.id);
+    onPresetApply();
+  };
+
+  // Helper to draw a tiny SVG thumbnail path for calibrated EQ profiles
+  const getTinyCurvePath = (eqValues: { [bandId: string]: number }) => {
+    const hpf = eqValues['hpf'] ? -2 : 0;
+    const low = eqValues['low-shelf'] || 0;
+    const mid1 = eqValues['mid-1'] || 0;
+    const mid2 = eqValues['mid-2'] || 0;
+    const high = eqValues['high-shelf'] || 0;
+
+    // Map -12..12 gains to 10..30 Y height coordinate
+    const getY = (val: number) => 20 - (val / 12) * 10;
+
+    return `M 10 20 Q 30 ${getY(hpf)} 50 ${getY(low)} T 90 ${getY(mid1)} T 130 ${getY(mid2)} T 170 ${getY(high)} L 180 20`;
+  };
+
+  // Compact Mode Render (used in Main Console dashboard)
+  if (variant === 'compact') {
+    const allPresets = [...PRESETS, ...customPresets];
+    return (
+      <div className="flex flex-col h-full min-h-0 select-none font-mono gap-3">
+        <div className="flex justify-between items-center flex-shrink-0">
+          <h4 className="text-[10px] font-black text-text uppercase tracking-wider flex items-center gap-1.5">
+            <Sliders className="w-4 h-4 text-accent" />
+            PERFILES DE SALA / PRESETS
+          </h4>
+          <button onClick={loadData} className="p-1 hover:text-text text-text-muted transition-colors cursor-pointer">
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="flex-shrink-0 bg-black/45 border border-white/5 p-2 rounded-xl text-[7.5px] text-text-soft text-center tracking-wider font-mono leading-relaxed uppercase">
+          {roomDiagnostic}
+        </div>
+
+        <div className="flex-grow overflow-y-auto no-scrollbar min-h-0">
+          <div className="grid grid-cols-2 gap-2 h-full">
+            {allPresets.map(preset => {
+              const isActive = selectedId === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  onClick={() => applyPreset(preset)}
+                  className={`p-3 rounded-xl text-left border cursor-pointer hover:bg-white/[0.02] flex flex-col justify-between transition-all duration-150 bg-white dark:bg-surface shadow-sm ${
+                    isActive 
+                      ? 'border-accent bg-accent/[0.02] shadow-[0_0_8px_rgba(255,140,0,0.1)]' 
+                      : 'border-black/5 dark:border-white/5'
+                  }`}
+                >
+                  <div className="flex justify-between items-center w-full min-w-0">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <img 
+                        src={getPresetIconUrl(preset)} 
+                        alt="" 
+                        className="w-4 h-4 object-contain flex-shrink-0 preset-icon-image" 
+                      />
+                      <span className={`text-[10px] font-black truncate uppercase ${isActive ? 'text-accent' : 'text-text'}`}>
+                        {preset.name}
+                      </span>
+                    </div>
+                    {isActive && <Check className="w-3 h-3 text-accent flex-shrink-0" />}
+                  </div>
+                  <span className="text-[6.5px] text-text-muted leading-relaxed font-bold uppercase tracking-tight block mt-2">
+                    {descriptionOverrides[preset.id] || preset.description}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  const handleSavePreset = () => {
-    if (!newPresetName.trim()) return
-
-    const bands = eqManager.getBands()
-    const values: Record<string, number> = {}
-    bands.forEach(b => {
-      values[b.id] = b.gain
-    })
-
-    const newPreset: Preset = {
-      name: newPresetName.trim(),
-      description: `Espacio acústico guardado el ${new Date().toLocaleDateString('es-ES')}.`,
-      values
-    }
-
-    const updated = [...customPresets, newPreset]
-    setCustomPresets(updated)
-    localStorage.setItem('freqlens_custom_presets', JSON.stringify(updated))
-    
-    setSelectedPresetName(newPreset.name)
-    setNewPresetName('')
-    setShowSaveModal(false)
-    
-    setSuccessMessage('¡Sala guardada!')
-    setTimeout(() => setSuccessMessage(''), 2500)
-    
-    onPresetApply()
-  }
-
-  const handleDeletePreset = (name: string) => {
-    const updated = customPresets.filter(p => p.name !== name)
-    setCustomPresets(updated)
-    localStorage.setItem('freqlens_custom_presets', JSON.stringify(updated))
-    
-    // Fallback to Flat
-    applyPreset(DEFAULT_PRESETS[0])
-    
-    setSuccessMessage('Sala eliminada.')
-    setTimeout(() => setSuccessMessage(''), 2500)
-  }
-
-  const exportJSON = () => {
-    const data = {
-      version: 1,
-      name: currentPreset.name,
-      description: currentPreset.description,
-      timestamp: new Date().toISOString(),
-      bands: eqManager.getBands().map(b => ({ id: b.id, frequency: b.frequency, gain: b.gain, Q: b.Q }))
-    }
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `freqlens-${currentPreset.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${Date.now()}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  const copyShareLink = () => {
-    const bands = eqManager.getBands()
-    const config = bands.map(b => `${b.id}:${b.gain.toFixed(1)}`).join('|')
-    const base64 = btoa(config)
-    const shareUrl = `${window.location.origin}${window.location.pathname}#eq=${base64}`
-    
-    navigator.clipboard.writeText(shareUrl)
-    setSuccessMessage('¡Enlace copiado!')
-    setTimeout(() => setSuccessMessage(''), 2500)
-  }
-
+  // Full Mode Render (used in Dedicated EQ Tab Page, exactly matching screenshot 1)
   return (
-    <div className="bg-[#05070a] border border-white/5 rounded-3xl p-4 select-none font-mono flex flex-col h-full min-h-0 relative">
+    <div className="flex flex-col h-auto select-none font-mono gap-2 animate-fade-in">
       
-      {/* 1. Header Area */}
-      <div className="flex justify-between items-center mb-3 flex-shrink-0">
-        <h3 className="text-white font-extrabold text-[10px] uppercase tracking-wider flex items-center gap-1">
-          <Activity className="w-3.5 h-3.5 text-accent" />
-          Ajustes / Salas
-        </h3>
+      {/* Header with toolbar */}
+      <div className="flex justify-between items-center flex-shrink-0">
+        <h4 className="text-[10.5px] font-black text-text uppercase tracking-wider flex items-center gap-1.5">
+          <Sliders className="w-4 h-4 text-accent" />
+          PERFILES DE SALA / PRESETS
+        </h4>
+        {/* Toolbar */}
+        <div className="flex gap-2 items-center">
+          <button 
+            onClick={() => setShowAddRoom(true)} 
+            className="px-2 py-0.5 rounded-lg border border-black/5 dark:border-white/5 bg-white dark:bg-surface hover:bg-accent/10 hover:text-accent text-text-muted transition-colors text-[7.5px] font-bold tracking-wider cursor-pointer uppercase shadow-sm"
+          >
+            + SALA
+          </button>
+          <button 
+            onClick={() => setShowAddPreset(true)} 
+            className="px-2 py-0.5 rounded-lg border border-black/5 dark:border-white/5 bg-white dark:bg-surface hover:bg-accent/10 hover:text-accent text-text-muted transition-colors text-[7.5px] font-bold tracking-wider cursor-pointer uppercase shadow-sm"
+          >
+            + PRESET
+          </button>
+          {/* Refresh button */}
+          <button onClick={loadData} className="p-1 hover:text-text text-text-muted transition-colors cursor-pointer">
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* 2. CALIBRATED ROOMS SECTION */}
+      <div className="flex flex-col gap-1">
+        <div className="text-[7.5px] font-black text-text-muted uppercase tracking-widest border-b border-black/5 dark:border-white/5 pb-1">
+          SALAS CALIBRADAS (ROOM CORRECTION)
+        </div>
         
-        {successMessage ? (
-          <span className="text-[8px] font-bold text-success uppercase tracking-widest bg-success/5 px-2 py-0.5 border border-success/15 rounded-md animate-fade-in">
-            {successMessage}
-          </span>
+        {profiles.length === 0 ? (
+          <div className="text-[8px] text-text-muted text-center py-2 border border-black/5 dark:border-white/5 rounded-lg">
+            NINGUNA SALA MEDIDA AÚN.
+          </div>
         ) : (
-          <span className="text-[7px] text-text-muted uppercase tracking-widest font-black">
-            Preset Activo
-          </span>
+          <div className="flex flex-col gap-1">
+            {profiles.map(prof => {
+              const isActive = selectedId === prof.id;
+              const ratingColor = prof.acousticRating === 'Excelente' || prof.acousticRating === 'Buena'
+                ? 'text-yellow-500 border-yellow-500/30 bg-yellow-500/5'
+                : 'text-orange-500 border-orange-500/30 bg-orange-500/5';
+
+              return (
+                <div
+                  key={prof.id}
+                  onClick={() => applyProfile(prof)}
+                  className={`px-2 py-1.5 rounded-xl border text-left cursor-pointer transition-all duration-150 flex flex-col bg-white dark:bg-surface shadow-sm ${
+                    isActive 
+                      ? 'border-accent bg-accent/[0.05] shadow-[0_0_8px_rgba(255,140,0,0.1)]' 
+                      : 'border-black/5 dark:border-white/5 hover:border-accent/30'
+                  }`}
+                >
+                  {/* Single compact row: dot + name + mini-curve + rating */}
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0" />
+                    <span className="text-[9px] font-black text-text uppercase truncate flex-shrink-0 max-w-[1200]">{prof.name}</span>
+                    
+                    {/* Inline mini-curve */}
+                    <div className="flex-grow h-4 rounded overflow-hidden flex items-center justify-center opacity-60">
+                      <svg className="w-full h-full stroke-black/10 dark:stroke-white/20" viewBox="0 0 180 40">
+                        <path d="M 0 20 L 180 20" strokeDasharray="2 2" strokeWidth="0.5" />
+                        <path 
+                          d={getTinyCurvePath(prof.eqValues)} 
+                          fill="none" 
+                          stroke="#ff8c00" 
+                          strokeWidth="1.5" 
+                        />
+                      </svg>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <span className={`text-[7px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider ${ratingColor}`}>
+                        {prof.acousticRating}
+                      </span>
+                      <span title="Editar notas" className="inline-flex">
+                        <Pencil 
+                          className="w-3 h-3 text-text-muted hover:text-accent cursor-pointer transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditRoomId(prof.id);
+                            setEditRoomName(prof.name);
+                            setEditRoomNotes(prof.notes || '');
+                          }}
+                        />
+                      </span>
+                      {!prof.id.startsWith('mock-') && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            RoomProfileStorage.deleteProfile(prof.id);
+                            loadData();
+                          }}
+                          className="p-0.5 hover:text-danger text-text-muted transition-colors cursor-pointer"
+                          title="Eliminar Sala"
+                        >
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
+                      {isActive && <Check className="w-3 h-3 text-accent" />}
+                    </div>
+                  </div>
+
+                  {/* Room Description Note */}
+                  <div className="text-[6.5px] text-text-muted leading-relaxed font-bold uppercase tracking-tight mt-1 ml-3.5">
+                    {prof.notes || 'SALA CALIBRADA SIN NOTAS ADICIONALES.'}
+                  </div>
+
+                  {/* Issue pill - inline small */}
+                  {prof.issues.length > 0 && (
+                    <div className={`mt-1 ml-3.5 px-1.5 py-0.5 rounded text-[6.5px] font-bold uppercase tracking-wider border leading-none w-fit ${
+                      prof.acousticRating === 'Buena' 
+                        ? 'border-yellow-500/20 text-yellow-500 bg-yellow-500/5' 
+                        : 'border-orange-500/20 text-orange-500 bg-orange-500/5'
+                    }`}>
+                      {prof.issues[0].message.toUpperCase()}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
 
-      {/* 2. Scrollable Preset Cards Stack List */}
-      <div className="flex-grow overflow-y-auto no-scrollbar flex flex-col gap-2 pr-0.5 mb-3 min-h-0">
-        
-        {/* Compact Dashed Add Preset Card */}
-        <button
-          onClick={() => setShowSaveModal(true)}
-          className="p-2 bg-accent/5 border border-dashed border-accent/20 hover:border-accent hover:bg-accent/10 transition-all rounded-2xl flex items-center justify-center gap-2 h-12 flex-shrink-0 cursor-pointer group"
-        >
-          <FolderPlus className="w-4 h-4 text-accent group-hover:scale-105 transition-transform" />
-          <span className="text-[8px] text-accent font-black uppercase tracking-wider">Guardar Sala / Ajuste de EQ</span>
-        </button>
+      {/* 3. REFERENCE PRESETS SECTION */}
+      <div className="flex flex-col gap-2">
+        <div className="text-[7.5px] font-black text-text-muted uppercase tracking-widest border-b border-black/5 dark:border-white/5 pb-1">
+          PRESETS DE REFERENCIA POR DEFECTO
+        </div>
 
-        {/* Dynamic Preset Cards List */}
-        {allPresets.map((preset) => {
-          const isActive = selectedPresetName === preset.name
-          const isCustom = customPresets.some(p => p.name === preset.name)
-          
-          return (
-            <div
-              key={preset.name}
+        <div className="grid grid-cols-2 gap-1.5">
+          {PRESETS.map(preset => (
+            <button
+              key={preset.id}
               onClick={() => applyPreset(preset)}
-              className={`group relative px-3 py-2 bg-panel border rounded-2xl text-left cursor-pointer transition-all duration-200 flex items-center justify-between h-12 flex-shrink-0 ${isActive ? 'border-accent bg-accent/[0.02] shadow-[0_0_8px_rgba(255,140,0,0.12)]' : 'border-white/5 bg-white/[0.01] hover:border-white/10 hover:bg-white/[0.02]'}`}
+              className={`p-2 rounded-xl text-left border cursor-pointer transition-all duration-150 flex flex-col justify-between gap-1 bg-white dark:bg-surface shadow-sm ${
+                selectedId === preset.id
+                  ? 'border-accent bg-accent/[0.05] shadow-[0_0_8px_rgba(255,140,0,0.1)]'
+                  : 'border-black/5 dark:border-white/5 hover:border-accent/30'
+              }`}
             >
-              {/* Left Side: Name and Active Light dot */}
-              <div className="flex items-center gap-2 max-w-[50%] min-w-0">
-                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isActive ? 'bg-accent shadow-[0_0_6px_var(--accent)] animate-pulse' : 'bg-white/10'}`} />
-                <div className="min-w-0">
-                  <h4 className={`font-black text-[10px] leading-tight transition-colors truncate ${isActive ? 'text-accent' : 'text-white group-hover:text-accent'}`}>
-                    {preset.name}
-                  </h4>
-                  <span className="text-[6px] text-text-muted uppercase tracking-widest block -mt-0.5">
-                    {isCustom ? 'Calibrado' : 'DSP'}
-                  </span>
+              <div className="flex justify-between items-center w-full min-w-0">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <img 
+                    src={getPresetIconUrl(preset)} 
+                    alt="" 
+                    className="w-3.5 h-3.5 object-contain flex-shrink-0 preset-icon-image" 
+                  />
+                  <span className={`text-[9px] font-black uppercase truncate ${selectedId === preset.id ? 'text-accent' : 'text-text'}`}>{preset.name}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Pencil 
+                    className="w-3 h-3 text-text-muted hover:text-accent cursor-pointer transition-colors" 
+                    onClick={e => { 
+                      e.stopPropagation(); 
+                      setEditPresetId(preset.id); 
+                      setEditPresetName(preset.name);
+                      setEditPresetNameInput(preset.name);
+                      setEditDescription(descriptionOverrides[preset.id] || preset.description); 
+                      setEditPresetIcon(preset.icon || 'custom_1');
+                    }} 
+                  />
+                  {selectedId === preset.id && <Check className="w-3 h-3 text-accent flex-shrink-0" />}
                 </div>
               </div>
-
-              {/* Right Side: Mini SVG curve and delete option */}
-              <div className="flex items-center gap-2">
-                <div className="w-12 h-6 overflow-hidden opacity-30 group-hover:opacity-85 transition-opacity">
-                  <svg className="w-full h-full" viewBox="0 0 100 20" preserveAspectRatio="none">
-                    <path 
-                      d={generatePresetPath(preset.values)}
-                      fill="none" 
-                      stroke={isActive ? '#ff8c00' : '#4b5563'} 
-                      strokeWidth="2"
-                      className="transition-all duration-300"
-                    />
-                  </svg>
-                </div>
-                
-                {/* Delete button (only visible on hover for custom spaces) */}
-                {isCustom && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDeletePreset(preset.name)
-                    }}
-                    className="p-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg opacity-0 group-hover:opacity-100 transition-all border border-red-500/15 cursor-pointer ml-1"
-                    title="Eliminar Espacio"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-            </div>
-          )
-        })}
-
+              <span className="text-[6.5px] text-text-muted leading-relaxed font-bold uppercase tracking-tight block mt-2">
+                {descriptionOverrides[preset.id] || preset.description}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* 3. Inline Save Modal Dialog overlay */}
-      {showSaveModal && (
-        <div className="absolute inset-0 bg-[#05070a]/95 backdrop-blur-md rounded-3xl p-4 flex flex-col justify-center items-center gap-4 z-30 animate-fade-in">
-          <div className="text-center w-full">
-            <h4 className="text-white font-extrabold text-[10px] uppercase tracking-widest mb-1">Guardar Ajuste Acústico</h4>
-            <p className="text-[7px] text-text-muted uppercase font-semibold">Introduce el nombre del espacio o curva</p>
-          </div>
-          
-          <input
-            type="text"
-            value={newPresetName}
-            onChange={(e) => setNewPresetName(e.target.value)}
-            placeholder="Ej. Control Room A, Home Studio..."
-            className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-text-muted focus:outline-none focus:border-accent text-center"
-            maxLength={22}
-            autoFocus
-          />
+      {/* 4. CUSTOM PRESETS SECTION */}
+      <div className="flex flex-col gap-2">
+        <div className="text-[7.5px] font-black text-text-muted uppercase tracking-widest border-b border-black/5 dark:border-white/5 pb-1">
+          MIS PRESETS PERSONALIZADOS
+        </div>
 
-          <div className="flex gap-2 w-full">
-            <button
-              onClick={() => {
-                setShowSaveModal(false)
-                setNewPresetName('')
-              }}
-              className="flex-1 py-2 bg-white/[0.02] border border-white/5 text-text-soft hover:text-white rounded-xl text-[9px] uppercase font-bold transition-all cursor-pointer flex items-center justify-center gap-1"
-            >
-              <X className="w-3.5 h-3.5" />
-              Cancelar
-            </button>
-            <button
-              onClick={handleSavePreset}
-              disabled={!newPresetName.trim()}
-              className="flex-1 py-2 bg-accent text-white rounded-xl text-[9px] uppercase font-black transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1 shadow-[0_0_8px_var(--accent-glow)]"
-            >
-              <Save className="w-3.5 h-3.5" />
-              Confirmar
-            </button>
+        {customPresets.length === 0 ? (
+          <div className="text-[8.5px] text-text-muted text-center py-3 border border-black/5 dark:border-white/5 rounded-2xl bg-white/[0.01] uppercase font-bold tracking-tight">
+            NINGÚN PRESET PERSONALIZADO GUARDADO. APLIQUE SU CONF. Y PULSE + PRESET PARA GUARDAR.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-1.5">
+            {customPresets.map(preset => (
+              <button
+                key={preset.id}
+                onClick={() => applyPreset(preset)}
+                className={`p-2 rounded-xl text-left border cursor-pointer transition-all duration-150 flex flex-col justify-between gap-1 bg-white dark:bg-surface shadow-sm ${
+                  selectedId === preset.id
+                    ? 'border-accent bg-accent/[0.05] shadow-[0_0_8px_rgba(255,140,0,0.1)]'
+                    : 'border-black/5 dark:border-white/5 hover:border-accent/30'
+                }`}
+              >
+                <div className="flex justify-between items-center w-full min-w-0">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <img 
+                      src={getPresetIconUrl(preset)} 
+                      alt="" 
+                      className="w-3.5 h-3.5 object-contain flex-shrink-0 preset-icon-image" 
+                    />
+                    <span className={`text-[9px] font-black uppercase truncate ${selectedId === preset.id ? 'text-accent' : 'text-text'}`}>
+                      {preset.name}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Pencil 
+                      className="w-3 h-3 text-text-muted hover:text-accent cursor-pointer transition-colors" 
+                      onClick={e => { 
+                        e.stopPropagation(); 
+                        setEditPresetId(preset.id); 
+                        setEditPresetName(preset.name);
+                        setEditPresetNameInput(preset.name);
+                        setEditDescription(descriptionOverrides[preset.id] || preset.description); 
+                        setEditPresetIcon(preset.icon || 'custom_1');
+                      }} 
+                    />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        PresetStorage.delete(preset.id);
+                        loadData();
+                      }}
+                      className="p-0.5 hover:text-danger text-text-muted transition-colors cursor-pointer"
+                      title="Eliminar Preset"
+                    >
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                    {selectedId === preset.id && <Check className="w-3 h-3 text-accent flex-shrink-0" />}
+                  </div>
+                </div>
+                <span className="text-[6.5px] text-text-muted leading-relaxed font-bold uppercase tracking-tight block mt-2">
+                  {descriptionOverrides[preset.id] || preset.description}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* --- ALL MODALS (GORGEOUS GLASSMORPHISM DESIGN SYSTEM MATCHING THE AUDIO CONSOLE) --- */}
+
+      {/* Modal 1: Edit Preset */}
+      {editPresetId && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white dark:bg-[#11141c]/95 border border-black/10 dark:border-white/10 rounded-xl p-6 w-full max-w-sm shadow-[0_20px_50px_rgba(0,0,0,0.5)] select-none">
+            <div className="flex justify-between items-center border-b border-black/5 dark:border-white/5 pb-3 mb-4">
+              <h3 className="text-[11px] font-black text-accent tracking-widest uppercase font-mono">
+                EDITAR PRESET: {editPresetName}
+              </h3>
+            </div>
+            <div className="space-y-4">
+              {editPresetId.startsWith('custom-') && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-[7.5px] text-text-muted uppercase tracking-wider font-bold">NOMBRE DEL PRESET</label>
+                  <input
+                    type="text"
+                    value={editPresetNameInput}
+                    onChange={e => setEditPresetNameInput(e.target.value)}
+                    className="w-full bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/10 rounded-xl p-2.5 text-[9.5px] font-mono text-white outline-none focus:border-accent/40 transition-colors uppercase"
+                    placeholder="MI PRESET DE MEZCLA"
+                    required
+                  />
+                </div>
+              )}
+              <div className="flex flex-col gap-1">
+                <label className="text-[7.5px] text-text-muted uppercase tracking-wider font-bold">DESCRIPCIÓN ACÚSTICA</label>
+                <textarea
+                  value={editDescription}
+                  onChange={e => setEditDescription(e.target.value)}
+                  className="w-full bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/10 rounded-xl p-3 text-[9.5px] font-mono text-white outline-none focus:border-accent/40 transition-colors uppercase leading-normal"
+                  rows={4}
+                  placeholder="ESCRIBE LA NOTA DE DESCRIPCIÓN..."
+                />
+              </div>
+              {editPresetId.startsWith('custom-') && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[7.5px] text-text-muted uppercase tracking-wider font-bold">SELECCIONAR ICONO</label>
+                  <div className="flex gap-2">
+                    {USER_ICONS.map(icon => (
+                      <button
+                        key={icon.id}
+                        type="button"
+                        onClick={() => setEditPresetIcon(icon.id)}
+                        className={`p-2 rounded-xl border flex items-center justify-center cursor-pointer transition-all ${
+                          editPresetIcon === icon.id
+                            ? 'border-accent bg-accent/10 shadow-[0_0_8px_rgba(255,140,0,0.3)]'
+                            : 'border-black/5 dark:border-white/5 bg-black/5 dark:bg-black/20 hover:border-black/20 dark:hover:border-white/20'
+                        }`}
+                      >
+                        <img src={`/preset-icons/${icon.id}.svg`} alt={icon.name} className="w-5 h-5 object-contain flex-shrink-0 preset-icon-image" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="flex justify-end gap-2 pt-2">
+                <button 
+                  onClick={() => setEditPresetId('')} 
+                  className="px-4 py-1.5 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/[0.03] text-text-soft hover:text-text transition-colors text-[8.5px] font-black tracking-widest uppercase font-mono cursor-pointer"
+                >
+                  CANCELAR
+                </button>
+                <button
+                  onClick={handleEditPresetSave}
+                  className="px-4 py-1.5 rounded-xl bg-accent text-black font-black hover:bg-accent-soft hover:text-accent transition-all text-[8.5px] tracking-widest uppercase font-mono cursor-pointer shadow-[0_0_15px_rgba(255,140,0,0.4)] hover:shadow-none"
+                >
+                  GUARDAR
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* 4. Details / Share / Export Footer Area */}
-      <div className="border-t border-white/5 pt-3 flex-shrink-0 flex flex-col gap-2">
-        {/* Curve metadata description */}
-        <div className="bg-black/35 border border-white/[0.02] rounded-xl p-2">
-          <span className="text-[6px] text-accent uppercase font-bold tracking-widest block mb-0.5">Detalles del Preset</span>
-          <p className="text-[8px] text-text-soft leading-normal uppercase tracking-tight line-clamp-2">
-            {currentPreset.description}
-          </p>
+      {/* Modal 2: Edit Room Notes */}
+      {editRoomId && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white dark:bg-[#11141c]/95 border border-black/10 dark:border-white/10 rounded-xl p-6 w-full max-w-sm shadow-[0_20px_50px_rgba(0,0,0,0.5)] select-none">
+            <div className="flex justify-between items-center border-b border-black/5 dark:border-white/5 pb-3 mb-4">
+              <h3 className="text-[11px] font-black text-accent tracking-widest uppercase font-mono">
+                EDITAR DESCRIPCIÓN SALA: {editRoomName}
+              </h3>
+            </div>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-[7.5px] text-text-muted uppercase tracking-wider font-bold">DESCRIPCIÓN DE LA SALA</label>
+                <textarea
+                  value={editRoomNotes}
+                  onChange={e => setEditRoomNotes(e.target.value)}
+                  className="w-full bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/10 rounded-xl p-3 text-[9.5px] font-mono text-white outline-none focus:border-accent/40 transition-colors uppercase leading-normal"
+                  rows={4}
+                  placeholder="ESCRIBE LA NOTA DE LA SALA..."
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button 
+                  onClick={() => setEditRoomId('')} 
+                  className="px-4 py-1.5 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/[0.03] text-text-soft hover:text-text transition-colors text-[8.5px] font-black tracking-widest uppercase font-mono cursor-pointer"
+                >
+                  CANCELAR
+                </button>
+                <button
+                  onClick={handleEditRoomSave}
+                  className="px-4 py-1.5 rounded-xl bg-accent text-black font-black hover:bg-accent-soft hover:text-accent transition-all text-[8.5px] tracking-widest uppercase font-mono cursor-pointer shadow-[0_0_15px_rgba(255,140,0,0.4)] hover:shadow-none"
+                >
+                  GUARDAR
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
+      )}
 
-        {/* Share and export buttons */}
-        <div className="grid grid-cols-2 gap-2">
-          <button 
-            onClick={exportJSON}
-            className="py-2 bg-white/[0.01] border border-white/5 rounded-xl text-text-soft hover:text-white hover:bg-white/[0.04] transition-all cursor-pointer flex items-center justify-center gap-1 text-[9px] font-bold uppercase tracking-tight"
-            title="Exportar archivo JSON"
-          >
-            <Download className="w-3.5 h-3.5 text-accent" />
-            <span>Exportar</span>
-          </button>
-          <button 
-            onClick={copyShareLink}
-            className="py-2 bg-white/[0.01] border border-white/5 rounded-xl text-text-soft hover:text-white hover:bg-white/[0.04] transition-all cursor-pointer flex items-center justify-center gap-1 text-[9px] font-bold uppercase tracking-tight"
-            title="Copiar Enlace"
-          >
-            <Share2 className="w-3.5 h-3.5 text-accent" />
-            <span>Compartir</span>
-          </button>
+      {/* Modal 3: Add Custom Preset */}
+      {showAddPreset && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white dark:bg-[#11141c]/95 border border-black/10 dark:border-white/10 rounded-xl p-6 w-full max-w-sm shadow-[0_20px_50px_rgba(0,0,0,0.5)] select-none">
+            <div className="flex justify-between items-center border-b border-black/5 dark:border-white/5 pb-3 mb-4">
+              <h3 className="text-[11px] font-black text-accent tracking-widest uppercase font-mono">
+                GUARDAR PRESET ACTUAL
+              </h3>
+            </div>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-[7.5px] text-text-muted uppercase tracking-wider font-bold">NOMBRE DEL PRESET</label>
+                <input
+                  type="text"
+                  value={newPresetName}
+                  onChange={e => setNewPresetName(e.target.value)}
+                  className="w-full bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/10 rounded-xl p-2.5 text-[9.5px] font-mono text-white outline-none focus:border-accent/40 transition-colors uppercase"
+                  placeholder="MI PRESET DE MEZCLA"
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[7.5px] text-text-muted uppercase tracking-wider font-bold">DESCRIPCIÓN O NOTAS</label>
+                <textarea
+                  value={newPresetDescription}
+                  onChange={e => setNewPresetDescription(e.target.value)}
+                  className="w-full bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/10 rounded-xl p-3 text-[9.5px] font-mono text-white outline-none focus:border-accent/40 transition-colors uppercase leading-normal"
+                  rows={3}
+                  placeholder="EXPLICACIÓN DE LA CURVA (GRAVES REALZADOS...)"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[7.5px] text-text-muted uppercase tracking-wider font-bold">SELECCIONAR ICONO</label>
+                <div className="flex gap-2">
+                  {USER_ICONS.map(icon => (
+                    <button
+                      key={icon.id}
+                      type="button"
+                      onClick={() => setNewPresetIcon(icon.id)}
+                      className={`p-2 rounded-xl border flex items-center justify-center cursor-pointer transition-all ${
+                        newPresetIcon === icon.id
+                          ? 'border-accent bg-accent/10 shadow-[0_0_8px_rgba(255,140,0,0.3)]'
+                          : 'border-black/5 dark:border-white/5 bg-black/5 dark:bg-black/20 hover:border-black/20 dark:hover:border-white/20'
+                      }`}
+                    >
+                      <img src={`/preset-icons/${icon.id}.svg`} alt={icon.name} className="w-5 h-5 object-contain flex-shrink-0 preset-icon-image" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button 
+                  onClick={() => setShowAddPreset(false)} 
+                  className="px-4 py-1.5 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/[0.03] text-text-soft hover:text-text transition-colors text-[8.5px] font-black tracking-widest uppercase font-mono cursor-pointer"
+                >
+                  CANCELAR
+                </button>
+                <button
+                  onClick={handleAddPreset}
+                  className="px-4 py-1.5 rounded-xl bg-accent text-black font-black hover:bg-accent-soft hover:text-accent transition-all text-[8.5px] tracking-widest uppercase font-mono cursor-pointer shadow-[0_0_15px_rgba(255,140,0,0.4)] hover:shadow-none"
+                >
+                  GUARDAR
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Modal 4: Add Room Profile */}
+      {showAddRoom && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white dark:bg-[#11141c]/95 border border-black/10 dark:border-white/10 rounded-xl p-6 w-full max-w-sm shadow-[0_20px_50px_rgba(0,0,0,0.5)] select-none">
+            <div className="flex justify-between items-center border-b border-black/5 dark:border-white/5 pb-3 mb-4">
+              <h3 className="text-[11px] font-black text-accent tracking-widest uppercase font-mono">
+                GUARDAR CONFIG. COMO NUEVA SALA
+              </h3>
+            </div>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-[7.5px] text-text-muted uppercase tracking-wider font-bold">NOMBRE DE LA SALA</label>
+                <input
+                  type="text"
+                  value={newRoomName}
+                  onChange={e => setNewRoomName(e.target.value)}
+                  className="w-full bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/10 rounded-xl p-2.5 text-[9.5px] font-mono text-white outline-none focus:border-accent/40 transition-colors uppercase"
+                  placeholder="CONTROL ROOM C / MI HABITACIÓN"
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[7.5px] text-text-muted uppercase tracking-wider font-bold">DESCRIPCIÓN DE LA ACÚSTICA</label>
+                <textarea
+                  value={newRoomDescription}
+                  onChange={e => setNewRoomDescription(e.target.value)}
+                  className="w-full bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/10 rounded-xl p-3 text-[9.5px] font-mono text-white outline-none focus:border-accent/40 transition-colors uppercase leading-normal"
+                  rows={3}
+                  placeholder="NOTAS DE CALIBRACIÓN DE ESTE ESPACIO"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button 
+                  onClick={() => setShowAddRoom(false)} 
+                  className="px-4 py-1.5 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/[0.03] text-text-soft hover:text-text transition-colors text-[8.5px] font-black tracking-widest uppercase font-mono cursor-pointer"
+                >
+                  CANCELAR
+                </button>
+                <button
+                  onClick={handleAddRoom}
+                  className="px-4 py-1.5 rounded-xl bg-accent text-black font-black hover:bg-accent-soft hover:text-accent transition-all text-[8.5px] tracking-widest uppercase font-mono cursor-pointer shadow-[0_0_15px_rgba(255,140,0,0.4)] hover:shadow-none"
+                >
+                  GUARDAR
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
-  )
-}
+  );
+};

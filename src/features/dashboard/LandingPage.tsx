@@ -13,11 +13,13 @@ import { GlassPanel } from '../../ui/GlassPanel'
 import { Button } from '../../ui/Button'
 
 interface LandingPageProps {
-  onStart: () => void
-  error: string | null
+  onStart: () => void;
+  onDocs: () => void;
+  error: string | null;
+  theme?: 'dark' | 'light'
 }
 
-export function LandingPage({ onStart, error }: LandingPageProps) {
+export function LandingPage({ onStart, onDocs, error, theme = 'dark' }: LandingPageProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animRef = useRef<number>(0)
   const dataRef = useRef<number[]>([])
@@ -30,10 +32,7 @@ export function LandingPage({ onStart, error }: LandingPageProps) {
     const BAR_COUNT = 64
 
     if (dataRef.current.length === 0) {
-      dataRef.current = Array.from({ length: BAR_COUNT }, (_, i) => {
-        const x = i / BAR_COUNT
-        return 0.1 + 0.65 * Math.exp(-Math.pow(x - 0.3, 2) / 0.05) + 0.2 * Math.random()
-      })
+      dataRef.current = Array.from({ length: BAR_COUNT }, () => Math.random())
     }
 
     const draw = () => {
@@ -62,42 +61,41 @@ export function LandingPage({ onStart, error }: LandingPageProps) {
         ctx.stroke()
       }
 
-      const barW = (W - 80) / BAR_COUNT
+      // Drawing spectrum
+      const barWidth = W / BAR_COUNT
+      ctx.fillStyle = 'rgba(255,140,0,0.15)'
+      for (let i = 0; i < BAR_COUNT; i++) {
+        // Slow random drift
+        dataRef.current[i] += (Math.random() - 0.5) * 0.05
+        dataRef.current[i] = Math.max(0.05, Math.min(0.95, dataRef.current[i]))
+
+        const h = dataRef.current[i] * H * 0.7
+        const x = i * barWidth
+        const y = H - h
+        ctx.fillRect(x + 1, y, barWidth - 2, h)
+      }
+
+      // Smooth envelope curve
       ctx.beginPath()
+      ctx.strokeStyle = 'var(--accent)'
       ctx.lineWidth = 2
-      ctx.strokeStyle = 'rgba(255,140,0,0.8)'
-      ctx.lineJoin = 'round'
-
-      dataRef.current.forEach((val, i) => {
-        const base = 0.07 + 0.6 * Math.exp(-Math.pow(i / BAR_COUNT - 0.3, 2) / 0.06)
-        dataRef.current[i] = Math.max(
-          0.03,
-          Math.min(1, val * 0.88 + base * 0.12 + (Math.random() - 0.5) * 0.05)
-        )
-        const bH = dataRef.current[i] * (H - 40)
-        const x = 40 + i * barW
-        const y = H - bH - 10
-
+      for (let i = 0; i < BAR_COUNT; i++) {
+        const h = dataRef.current[i] * H * 0.7
+        const x = i * barWidth + barWidth / 2
+        const y = H - h
         if (i === 0) ctx.moveTo(x, y)
         else ctx.lineTo(x, y)
-      })
+      }
       ctx.stroke()
 
-      // Area gradient under spectrum line
-      ctx.lineTo(40 + (BAR_COUNT - 1) * barW, H)
-      ctx.lineTo(40, H)
-      const fillGrad = ctx.createLinearGradient(0, H - 120, 0, H)
+      // Gradient Fill
+      ctx.lineTo(W - barWidth/2, H)
+      ctx.lineTo(barWidth/2, H)
+      const fillGrad = ctx.createLinearGradient(0, 0, 0, H)
       fillGrad.addColorStop(0, 'rgba(255,140,0,0.08)')
       fillGrad.addColorStop(1, 'rgba(255,140,0,0)')
       ctx.fillStyle = fillGrad
       ctx.fill()
-
-      // dB Labels
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.25)'
-      ctx.font = '9px "JetBrains Mono", monospace'
-      ;['0dB', '-12', '-24', '-36', '-48'].forEach((l, i) => {
-        ctx.fillText(l, 8, 12 + i * (H - 40) / 4)
-      })
 
       animRef.current = requestAnimationFrame(draw)
     }
@@ -113,7 +111,15 @@ export function LandingPage({ onStart, error }: LandingPageProps) {
       {/* Header */}
       <header className="w-full h-16 border-b border-white/5 bg-black/10 backdrop-blur-md sticky top-0 z-50 select-none">
         <div className="max-w-[1200px] mx-auto h-full flex justify-between items-center px-6">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
+            {/* Brand logo (New official geometric design matching Sidebar) */}
+            <div className="w-8 h-8 flex items-center justify-center animate-pulse drop-shadow-[0_0_10px_var(--accent-glow)] select-none">
+              <svg viewBox="0 0 100 100" className="w-full h-full">
+                <circle cx="50" cy="50" r="40" stroke="var(--accent)" strokeWidth="6" fill="none" />
+                <path d="M 22 62 Q 35 62 42 45 Q 50 25 58 45 Q 65 62 78 62" stroke={theme === 'dark' ? 'white' : 'var(--text)'} strokeWidth="4" fill="none" strokeLinecap="round" />
+                <circle cx="50" cy="48" r="5" fill={theme === 'dark' ? 'white' : 'var(--text)'} />
+              </svg>
+            </div>
             <span className="text-base font-black tracking-widest text-accent font-mono">
               FREQLENS
             </span>
@@ -155,9 +161,7 @@ export function LandingPage({ onStart, error }: LandingPageProps) {
             <Button variant="primary" size="lg" onClick={onStart} icon={<Play className="w-4 h-4" />}>
               Abrir Consola de Audio
             </Button>
-            <Button variant="secondary" size="lg" onClick={onStart}>
-              Documentación
-            </Button>
+            <Button variant="secondary" size="lg" onClick={onDocs}>Documentación</Button>
           </div>
 
           {error && (
@@ -183,23 +187,21 @@ export function LandingPage({ onStart, error }: LandingPageProps) {
               <span className="mono text-[9px] text-accent/50 font-bold">FFT_SIZE: 2048</span>
             </div>
             {/* Canvas */}
-            <canvas ref={canvasRef} className="w-full bg-[#080a0e]" style={{ height: 220, display: 'block' }} />
+            <div className="h-56 w-full relative">
+              <canvas ref={canvasRef} className="w-full h-full block" />
+            </div>
           </GlassPanel>
         </section>
 
-        {/* Bento Grid */}
-        <section className="grid grid-cols-1 md:grid-cols-12 gap-6 fade-up" style={{ animationDelay: '0.2s' }}>
-          {/* Main Spectrum feature */}
-          <GlassPanel className="md:col-span-8 flex flex-col justify-between min-h-[260px] relative overflow-hidden group hover:border-accent/20 transition-all" hoverEffect>
-            <div className="absolute top-0 right-0 p-8 opacity-[0.02] pointer-events-none text-accent">
-              <Activity style={{ fontSize: 160, width: 160, height: 160 }} />
-            </div>
+        {/* System Features grid */}
+        <section className="grid grid-cols-1 md:grid-cols-12 gap-4 fade-up" style={{ animationDelay: '0.2s' }}>
+          <GlassPanel className="md:col-span-8 flex flex-col justify-between min-h-[260px]">
             <div>
-              <div className="flex justify-between items-start mb-6">
-                <Activity className="w-8 h-8 text-accent" />
+              <div className="flex items-center justify-between w-full mb-3">
                 <span className="mono text-[9px] text-text-soft px-2 py-0.5 rounded border border-white/5 bg-white/[0.02] font-semibold">
                   RTA_ENGINE_PRO
                 </span>
+                <Activity className="w-5 h-5 text-accent" />
               </div>
               <h3 className="text-xl font-bold text-white mb-3">
                 Espectroscopia de Tiempo Real
@@ -225,9 +227,10 @@ export function LandingPage({ onStart, error }: LandingPageProps) {
           </GlassPanel>
 
           {/* Calibrate card links */}
-          <div
+          <GlassPanel
             onClick={onStart}
-            className="md:col-span-4 rounded-[24px] border border-white/5 bg-white/[0.01] p-6 flex flex-col justify-between cursor-pointer hover:border-accent/25 hover:bg-white/[0.03] active:scale-95 group transition-all duration-300 min-h-[260px]"
+            className="md:col-span-4 flex flex-col justify-between cursor-pointer active:scale-95 group transition-all duration-300 min-h-[260px]"
+            hoverEffect
           >
             <div>
               <Volume2 className="w-7 h-7 text-accent mb-4" />
@@ -242,10 +245,14 @@ export function LandingPage({ onStart, error }: LandingPageProps) {
               <span className="mono text-[10px] font-bold uppercase tracking-wider">Iniciar Calibración</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </div>
-          </div>
+          </GlassPanel>
 
           {/* Privacy node */}
-          <GlassPanel className="md:col-span-4 flex flex-col justify-between min-h-[240px] bg-accent/5 border-accent/15">
+          <GlassPanel 
+            onClick={onStart}
+            className="md:col-span-4 flex flex-col justify-between min-h-[260px] bg-accent/5 border-accent/15 cursor-pointer active:scale-95 group transition-all duration-300"
+            hoverEffect
+          >
             <div>
               <Lock className="w-7 h-7 text-accent mb-4" />
               <span className="mono text-[9px] uppercase tracking-widest text-accent font-bold block mb-2">
@@ -341,9 +348,15 @@ export function LandingPage({ onStart, error }: LandingPageProps) {
           </div>
           <div className="flex gap-6">
             {[['Documentación', 'Documentation'], ['API del Motor', 'Engine API'], ['Privacidad', 'Privacy'], ['Soporte', 'Support']].map(([label, l]) => (
-              <a key={l} className="mono text-[10px] text-text-muted hover:text-accent cursor-pointer transition-colors">
-                {label}
-              </a>
+              label === 'Documentación' ? (
+                <a key={l} className="mono text-[10px] text-text-muted hover:text-accent cursor-pointer transition-colors" onClick={onDocs}>
+                  {label}
+                </a>
+              ) : (
+                <a key={l} className="mono text-[10px] text-text-muted hover:text-accent cursor-pointer transition-colors">
+                  {label}
+                </a>
+              )
             ))}
           </div>
           <div className="flex items-center gap-3 text-text-muted">

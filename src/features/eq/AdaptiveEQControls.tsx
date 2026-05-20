@@ -3,15 +3,26 @@ import { useState, useEffect } from 'react'
 import { AdaptiveEQManager, type EQBand } from '../../core/audio/AdaptiveEQManager'
 import { Sliders } from 'lucide-react'
 import { GlassPanel } from '../../ui/GlassPanel'
-import { SectionTitle } from '../../ui/SectionTitle'
+import { RoomProfileStorage, type RoomProfile } from '../../core/audio/RoomProfileStorage'
 
 export const AdaptiveEQControls = ({ onUpdate }: { onUpdate?: () => void }) => {
   const [bands, setBands] = useState<EQBand[]>([])
+  const [activeProfile, setActiveProfile] = useState<RoomProfile | null>(null)
   const eqManager = AdaptiveEQManager.getInstance()
 
+  const loadProfile = () => {
+    const list = RoomProfileStorage.getAllProfiles()
+    if (list.length > 0) {
+      setActiveProfile(list[0])
+    } else {
+      setActiveProfile(null)
+    }
+  }
+
   useEffect(() => {
+    loadProfile()
     setBands([...eqManager.getBands()])
-  }, [])
+  }, [onUpdate])
 
   const handleGainChange = (id: string, gain: number) => {
     eqManager.setBandGain(id, gain)
@@ -27,74 +38,120 @@ export const AdaptiveEQControls = ({ onUpdate }: { onUpdate?: () => void }) => {
     if (onUpdate) onUpdate()
   }
 
+  const applyOptimalCalibration = () => {
+    if (!activeProfile) return
+    Object.entries(activeProfile.eqValues).forEach(([id, targetGain]) => {
+      eqManager.setBandGain(id, targetGain)
+    })
+    setBands([...eqManager.getBands()])
+    if (onUpdate) onUpdate()
+  }
+
   return (
-    <GlassPanel hoverEffect>
-      <SectionTitle
-        title="Control de Ecualización Paramétrica"
-        subtitle="Bandas de Compensación de Sala Activas"
-        icon={<Sliders className="w-4 h-4 text-accent" />}
-        compact
-        actionSlot={
+    <GlassPanel className="!p-4 flex flex-col gap-4 flex-shrink-0 border-border-custom bg-panel/30" hoverEffect>
+      {/* Header Info */}
+      <div className="flex justify-between items-center select-none font-mono flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <Sliders className="w-4 h-4 text-accent" />
+          <div>
+            <h4 className="text-[10px] font-black text-text-main uppercase tracking-wider leading-none">
+              CORRECCIÓN DE SALA PARAMÉTRICA
+            </h4>
+            <span className="text-[7.5px] text-text-muted uppercase tracking-widest block mt-1 font-bold">
+              {activeProfile 
+                ? `GUÍA ACTIVA: COMPENSACIÓN PARA ${activeProfile.name.toUpperCase()}`
+                : 'FILTROS DE FASE LINEAL NEUTROS (±6 DB RECOMENDADO)'}
+            </span>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2 font-mono">
+          {activeProfile && (
+            <button 
+              onClick={applyOptimalCalibration}
+              className="mono text-[8px] uppercase tracking-widest font-black text-accent hover:text-white transition-colors bg-accent/10 border border-accent/20 px-3 py-1 rounded cursor-pointer"
+              title="Alinear automáticamente todas las bandas con la calibración física calculada de la sala"
+            >
+              OPTIMIZAR SALA
+            </button>
+          )}
           <button 
             onClick={resetBands}
-            className="mono text-[9px] uppercase tracking-widest font-bold text-text-muted hover:text-accent transition-colors bg-white/[0.03] border border-white/5 px-2.5 py-1 rounded-lg cursor-pointer"
+            className="mono text-[8px] uppercase tracking-widest font-black text-text-soft hover:text-accent transition-colors bg-bg-elevated border border-border-custom px-3 py-1 rounded cursor-pointer"
           >
-            Restablecer
+            RESTABLECER
           </button>
-        }
-      />
-      
-      {/* Compact horizontal fader strip */}
-      <div className="flex gap-2 sm:gap-3 justify-between py-0.5">
-        {bands.map(band => (
-          <div key={band.id} className="flex flex-col items-center gap-2 select-none">
-            {/* Custom high-end DAW vertical range track */}
-            <div className="relative h-10 w-1 bg-bg-elevated border border-white/5 rounded-full overflow-visible flex items-center justify-center">
-              
-              {/* Center 0dB indicator tick mark */}
-              <div className="absolute w-3 h-0.5 bg-white/10 z-0" style={{ top: '50%' }} />
-
-              {/* Highlight active gain fill bar growing up/down from 0dB center line */}
-              <div 
-                className="absolute w-full bg-accent/35 rounded-full transition-all duration-100 shadow-[0_0_8px_var(--accent-glow)] z-10"
-                style={
-                  band.gain >= 0
-                    ? { bottom: '50%', height: `${(band.gain / 24) * 100}%` }
-                    : { bottom: `${((band.gain + 12) / 24) * 100}%`, height: `${(-band.gain / 24) * 100}%` }
-                }
-              />
-
-              <input
-                type="range"
-                min="-12"
-                max="12"
-                step="0.1"
-                value={band.gain}
-                onChange={(e) => handleGainChange(band.id, parseFloat(e.target.value))}
-                className="absolute inset-0 w-full h-full appearance-none bg-transparent daw-fader z-20"
-              />
-            </div>
-            
-            {/* Band description metrics */}
-            <div className="text-center font-mono">
-              <div className="text-[7px] font-black text-text-muted uppercase tracking-wider leading-none">
-                {band.id}
-              </div>
-              <div className="text-[8px] text-accent font-bold leading-none mt-0.5">
-                {band.gain > 0 ? '+' : ''}{band.gain.toFixed(1)}
-              </div>
-              <div className="text-[7px] text-text-soft leading-none mt-0.5">
-                {band.frequency < 1000 ? `${band.frequency}Hz` : `${(band.frequency / 1000).toFixed(1)}k`}
-              </div>
-            </div>
-          </div>
-        ))}
+        </div>
       </div>
-      
-      {/* Inline status strip */}
-      <div className="mt-2 flex items-center justify-between">
-        <span className="mono text-[8px] text-text-muted uppercase tracking-widest font-bold">Corrección DSP Activa</span>
-        <span className="mono text-[8px] text-success font-bold bg-success/10 px-2 py-0.5 rounded border border-success/20">NODO ACTIVO</span>
+
+      {/* Faders strip: grouped exactly as mock */}
+      <div className="grid grid-cols-5 gap-4 py-2 max-w-2xl mx-auto w-full">
+        {bands.map(band => {
+          // Map -12..12 scale to 0..100 percentage position for user fader knob
+          const percent = ((band.gain + 12) / 24) * 100
+
+          // Calculate recommended target position from active calibrated room profile
+          const targetGain = activeProfile ? (activeProfile.eqValues[band.id] ?? 0) : 0
+          const targetPercent = ((targetGain + 12) / 24) * 100
+
+          return (
+            <div key={band.id} className="flex flex-col items-center gap-4 select-none">
+              {/* DAW Vertical Fader Slot: Tall & elegant */}
+              <div className="relative h-[120px] w-0.75 bg-black/10 dark:bg-white/10 rounded-full flex items-center justify-center">
+                
+                {/* Center 0dB indicator tick */}
+                <div className="absolute left-[-4px] right-[-4px] h-0.5 bg-black/20 dark:bg-white/20 z-0" style={{ top: '50%' }} />
+
+                {/* RECOMMENDED TARGET INDICATOR (Ghost Ring) */}
+                {activeProfile && (
+                  <div 
+                    className="absolute w-3.5 h-3.5 rounded-full border border-dashed border-accent bg-accent/10 shadow-[0_0_8px_rgba(255,140,0,0.3)] z-5 pointer-events-none transition-all duration-300"
+                    style={{ 
+                      bottom: `calc(${targetPercent}% - 7px)` // Center the 14px target ghost ring
+                    }}
+                    title={`Objetivo de calibración: ${targetGain > 0 ? '+' : ''}${targetGain.toFixed(1)} dB`}
+                  />
+                )}
+
+                {/* Custom glowing orange ring knob with dark inset border and center orange dot */}
+                <div 
+                  className="absolute w-4 h-4 rounded-full border-[3px] border-black/90 bg-accent shadow-[0_0_0_1.5px_#ff8c00,0_0_10px_rgba(255,140,0,0.8)] z-10 pointer-events-none transition-all duration-75"
+                  style={{ 
+                    bottom: `calc(${percent}% - 8px)` // Center the 16px knob (8px offset)
+                  }}
+                />
+
+                {/* Native Range input hidden but active */}
+                <input
+                  type="range"
+                  min="-12"
+                  max="12"
+                  step="0.1"
+                  value={band.gain}
+                  onChange={(e) => handleGainChange(band.id, parseFloat(e.target.value))}
+                  className="absolute inset-0 w-8 h-full appearance-none bg-transparent opacity-0 z-20 cursor-ns-resize -ml-3.5"
+                />
+              </div>
+              
+              {/* Band description metrics exactly like mockup */}
+              <div className="text-center font-mono w-full select-none">
+                <div className="text-[9px] font-black text-text-soft uppercase tracking-wider leading-none">
+                  {band.id.replace('-shelf', '').toUpperCase()}
+                </div>
+                <div className="text-[10.5px] text-accent font-extrabold leading-none mt-1.5">
+                  {band.gain > 0 ? '+' : ''}{band.gain.toFixed(1)}
+                </div>
+                {/* Target objective indicator text */}
+                <div className="text-[7.5px] text-text-muted mt-1 uppercase font-bold tracking-tight">
+                  {activeProfile ? `TGT: ${targetGain > 0 ? '+' : ''}${targetGain.toFixed(1)}` : 'TGT: 0.0'}
+                </div>
+                <div className="text-[8px] text-text-muted leading-none mt-1.5 font-bold">
+                  {band.frequency < 1000 ? `${band.frequency}Hz` : `${(band.frequency / 1000).toFixed(0)}k`}
+                </div>
+              </div>
+            </div>
+          )
+        })}
       </div>
     </GlassPanel>
   )

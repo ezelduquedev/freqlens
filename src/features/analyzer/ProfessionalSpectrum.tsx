@@ -14,11 +14,12 @@ function renderSpectrum(
   data: Float32Array, 
   width: number, 
   height: number,
-  theme: any
+  theme: any,
+  isLight: boolean
 ) {
   ctx.clearRect(0, 0, width, height)
   
-  drawGrid(ctx, width, height)
+  drawGrid(ctx, width, height, isLight)
 
   const accentColor = theme.primary || '#ff8c00'
 
@@ -63,9 +64,9 @@ function renderSpectrum(
   }
 }
 
-function drawGrid(ctx: CanvasRenderingContext2D, width: number, height: number) {
+function drawGrid(ctx: CanvasRenderingContext2D, width: number, height: number, isLight: boolean) {
   // Semi-transparent grid lines
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)'
+  ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.04)'
   ctx.lineWidth = 1
   
   const keyFreqs = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000]
@@ -80,7 +81,7 @@ function drawGrid(ctx: CanvasRenderingContext2D, width: number, height: number) 
     ctx.stroke()
 
     // Technical minimal grid label
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)'
+    ctx.fillStyle = isLight ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.3)'
     ctx.font = '9px "JetBrains Mono", monospace'
     const label = f >= 1000 ? `${f/1000}kHz` : `${f}Hz`
     ctx.fillText(label, x + 5, height - 10)
@@ -156,15 +157,18 @@ export const ProfessionalSpectrum = ({
         setIsSilent(stableSilent)
       }
       
+      const isLight = document.documentElement.getAttribute('data-theme') === 'light'
+      
       if (framesRef.current === 1 && !stableSilent) {
         setFeedback(SmartAnalyzer.analyzeTonalBalance(dataArray, audioManager.getContext()?.sampleRate || 48000))
       }
 
-      renderSpectrum(ctx, dataArray, W, H, { primary: color })
+      renderSpectrum(ctx, dataArray, W, H, { primary: color }, isLight)
     } else {
+      const isLight = document.documentElement.getAttribute('data-theme') === 'light'
       // Offline fallback: clear and draw grid lines so canvas is NEVER black!
       ctx.clearRect(0, 0, W, H)
-      drawGrid(ctx, W, H)
+      drawGrid(ctx, W, H, isLight)
       activeHoldFramesRef.current = 0
       if (framesRef.current % 10 === 0) {
         setIsSilent(true)
@@ -210,10 +214,8 @@ export const ProfessionalSpectrum = ({
       </div>
       
       {/* Dynamic watermarks */}
-      <div className="absolute bottom-4 right-4 pointer-events-none select-none mono text-[8px] uppercase tracking-widest text-text-muted flex items-center gap-1.5 z-20">
-        <Cpu className="w-3.5 h-3.5" />
-        <span>Nodo FreqLens RTA_PRO</span>
+      <div className="absolute top-4 right-4 pointer-events-none select-none mono text-[8px] uppercase tracking-widest text-text-muted flex items-center gap-1.5 z-20"><Cpu className="w-3.5 h-3.5" /><span>Nodo FreqLens RTA_PRO</span></div>
       </div>
-    </div>
+
   )
 }

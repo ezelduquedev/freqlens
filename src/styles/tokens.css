@@ -1,4 +1,5 @@
 :root {
+  /* Default Dark Mode Theme */
   --bg: #0b0d12;
   --bg-elevated: #11141c;
   --panel: rgba(18, 22, 32, 0.72);
@@ -26,4 +27,25 @@
   --shadow-panel: 0 10px 40px rgba(0, 0, 0, 0.35);
 
   --blur: blur(18px);
+}
+
+/* Light / Clear Mode Theme Overrides */
+:root[data-theme="light"] {
+  --bg: #f3f4f6;
+  --bg-elevated: #ffffff;
+  --panel: rgba(255, 255, 255, 0.75);
+  --panel-solid: #f9fafb;
+
+  --border: rgba(0, 0, 0, 0.04);
+  --border-strong: rgba(0, 0, 0, 0.08);
+
+  --text: #0f172a;
+  --text-soft: #475569;
+  --text-muted: #64748b;
+
+  --accent: #ea580c; /* High contrast orange for visibility in light mode */
+  --accent-soft: rgba(234, 88, 12, 0.12);
+  --accent-glow: rgba(234, 88, 12, 0.3);
+
+  --shadow-panel: 0 10px 30px rgba(0, 0, 0, 0.06);
 }

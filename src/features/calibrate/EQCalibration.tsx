@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { CalibrationService } from '../../core/audio/CalibrationService'
 import { AdaptiveEQManager } from '../../core/audio/AdaptiveEQManager'
 import { AudioManager } from '../../core/audio/AudioManager'
-import { StorageManager, type CalibrationResult } from '../../core/db/StorageManager'
-import { Activity, ShieldCheck, RefreshCw, Zap, Volume2, CheckCircle2, Play } from 'lucide-react'
+import { RoomAnalysisEngine, type RoomAnalysisResult } from '../../core/audio/RoomAnalysisEngine'
+import { EQRecommendationEngine, type SuggestedBand } from '../../core/audio/EQRecommendationEngine'
+import { RoomProfileStorage } from '../../core/audio/RoomProfileStorage'
+import { Activity, ShieldCheck, RefreshCw, Zap, Volume2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { GlassPanel } from '../../ui/GlassPanel'
-import { Button } from '../../ui/Button'
-import { SectionTitle } from '../../ui/SectionTitle'
 
 interface EQCalibrationProps {
   onNavigateToEQ?: () => void
@@ -19,7 +19,14 @@ export const EQCalibration = ({ onNavigateToEQ }: EQCalibrationProps) => {
   const [step, setStep] = useState<Step>('selection')
   const [signal, setSignal] = useState<SignalType>('sweep')
   const [progress, setProgress] = useState(0)
-  const [correctionData, setCorrectionData] = useState<{freq: number, gain: number}[]>([])
+  
+  // Motores de análisis acústico
+  const [analysisResult, setAnalysisResult] = useState<RoomAnalysisResult | null>(null)
+  const [recommendations, setRecommendations] = useState<SuggestedBand[]>([])
+  
+  // Datos del perfil
+  const [roomName, setRoomName] = useState('')
+  const [roomNotes, setRoomNotes] = useState('')
   const [applied, setApplied] = useState(false)
   
   const calibrationService = CalibrationService.getInstance()
@@ -29,6 +36,8 @@ export const EQCalibration = ({ onNavigateToEQ }: EQCalibrationProps) => {
     setStep('measuring')
     setProgress(0)
     setApplied(false)
+    setAnalysisResult(null)
+    setRecommendations([])
     
     const duration = signal === 'sweep' ? 10 : 15
     const startTime = Date.now()
@@ -54,24 +63,18 @@ export const EQCalibration = ({ onNavigateToEQ }: EQCalibrationProps) => {
       const binCount = response.length
       const frequencies = Array.from({ length: binCount }, (_, i) => (i * nyquist) / binCount)
       
-      eqManager.calculateCorrection(Array.from(response), frequencies)
+      // 1. Ejecutar el análisis acústico inteligente
+      const analysis = RoomAnalysisEngine.analyze(Array.from(response), frequencies)
+      setAnalysisResult(analysis)
       
-      const bands = eqManager.getBands()
-      setCorrectionData(bands.map(b => ({ freq: b.frequency, gain: b.gain })))
-
-      try {
-        const storage = new StorageManager()
-        await storage.init()
-        const result: CalibrationResult = {
-          id: Date.now().toString(),
-          timestamp: Date.now(),
-          deviceName: 'Micrófono del dispositivo',
-          frequencyResponse: Array.from(response)
-        }
-        await storage.saveCalibration(result)
-      } catch (dbErr) {
-        console.error('Failed to save calibration to DB', dbErr)
-      }
+      // 2. Calcular la curva correctiva recomendada de ecualización (límite ±6dB)
+      const suggestions = EQRecommendationEngine.calculate(Array.from(response), frequencies)
+      setRecommendations(suggestions)
+      
+      // Inicializar el nombre por defecto de la sala
+      const today = new Date().toLocaleDateString()
+      setRoomName(`Sala Calibrada (${today})`)
+      setRoomNotes('')
 
       setStep('result')
     } catch (err) {
@@ -80,7 +83,32 @@ export const EQCalibration = ({ onNavigateToEQ }: EQCalibrationProps) => {
     }
   }
 
-  const applyCorrection = () => {
+  const handleApplyAndSave = () => {
+    if (!analysisResult) return
+
+    // 1. Aplicar la EQ correctiva a los filtros DSP
+    recommendations.forEach(rec => {
+      eqManager.setBandGain(rec.id, rec.suggestedGain)
+    });
+    
+    // 2. Guardar en el almacenamiento de perfiles de sala
+    const eqValues: Record<string, number> = {}
+    recommendations.forEach(rec => {
+      eqValues[rec.id] = rec.suggestedGain
+    })
+
+    RoomProfileStorage.saveProfile({
+      id: `room-${Date.now()}`,
+      name: roomName || 'Mi Sala',
+      date: new Date().toLocaleDateString(),
+      timestamp: Date.now(),
+      averageRMS: analysisResult.averageRMS,
+      acousticRating: analysisResult.acousticRating,
+      issues: analysisResult.issues,
+      eqValues: eqValues,
+      notes: roomNotes || 'Sin observaciones.'
+    })
+
     setApplied(true)
     setTimeout(() => {
       if (onNavigateToEQ) {
@@ -93,48 +121,69 @@ export const EQCalibration = ({ onNavigateToEQ }: EQCalibrationProps) => {
   }
 
   return (
-    <GlassPanel className="h-full flex flex-col gap-8 w-full select-none" hoverEffect>
+    <GlassPanel className="h-full flex flex-col gap-6 w-full select-none border-white/5 bg-black/10 !p-6" hoverEffect>
       
-      {/* 1. Technical Steps Progress Header */}
-      <div className="flex items-center justify-between max-w-md mx-auto w-full select-none">
-        
+      {/* 1. Technical Steps Progress Header exactly matching mockup */}
+      <div className="flex items-center justify-between max-w-lg mx-auto w-full select-none flex-shrink-0 font-mono">
         {/* Step 1: Selection */}
-        <div className={`flex flex-col items-center gap-2 ${step === 'selection' ? 'text-accent' : 'text-text-muted'}`}>
-          <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-mono font-bold text-xs transition-all ${step === 'selection' ? 'border-accent bg-accent/10 text-accent shadow-[0_0_10px_var(--accent-glow)]' : 'border-white/10'}`}>1</div>
-          <span className="mono text-[9px] font-bold uppercase tracking-widest">Selección</span>
+        <div className={`flex flex-col items-center gap-1.5 ${step === 'selection' ? 'text-accent' : 'text-text-muted'}`}>
+          <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold text-[10px] transition-all ${
+            step === 'selection' 
+              ? 'border-accent bg-accent/10 text-accent shadow-[0_0_8px_rgba(255,140,0,0.8)]' 
+              : 'border-white/10 text-text-muted bg-black/20'
+          }`}>
+            1
+          </div>
+          <span className="text-[8px] font-black uppercase tracking-widest">SELECCIÓN</span>
         </div>
         
-        <div className="flex-1 h-px bg-white/5 mx-4 mb-5"></div>
+        <div className="flex-grow h-0.5 bg-white/5 mx-4 mb-5" />
         
         {/* Step 2: Measuring */}
-        <div className={`flex flex-col items-center gap-2 ${step === 'measuring' ? 'text-accent' : 'text-text-muted'}`}>
-          <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-mono font-bold text-xs transition-all ${step === 'measuring' ? 'border-accent bg-accent/10 text-accent shadow-[0_0_10px_var(--accent-glow)]' : 'border-white/10'}`}>2</div>
-          <span className="mono text-[9px] font-bold uppercase tracking-widest">Medición</span>
+        <div className={`flex flex-col items-center gap-1.5 ${step === 'measuring' ? 'text-accent' : 'text-text-muted'}`}>
+          <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold text-[10px] transition-all ${
+            step === 'measuring' 
+              ? 'border-accent bg-accent/10 text-accent shadow-[0_0_8px_rgba(255,140,0,0.8)]' 
+              : 'border-white/10 text-text-muted bg-black/20'
+          }`}>
+            2
+          </div>
+          <span className="text-[8px] font-black uppercase tracking-widest">MEDICIÓN</span>
         </div>
         
-        <div className="flex-1 h-px bg-white/5 mx-4 mb-5"></div>
+        <div className="flex-grow h-0.5 bg-white/5 mx-4 mb-5" />
         
         {/* Step 3: Results */}
-        <div className={`flex flex-col items-center gap-2 ${step === 'result' ? 'text-accent' : 'text-text-muted'}`}>
-          <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-mono font-bold text-xs transition-all ${step === 'result' ? 'border-accent bg-accent/10 text-accent shadow-[0_0_10px_var(--accent-glow)]' : 'border-white/10'}`}>3</div>
-          <span className="mono text-[9px] font-bold uppercase tracking-widest">Resultados</span>
+        <div className={`flex flex-col items-center gap-1.5 ${step === 'result' ? 'text-accent' : 'text-text-muted'}`}>
+          <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold text-[10px] transition-all ${
+            step === 'result' 
+              ? 'border-accent bg-accent/10 text-accent shadow-[0_0_8px_rgba(255,140,0,0.8)]' 
+              : 'border-white/10 text-text-muted bg-black/20'
+          }`}>
+            3
+          </div>
+          <span className="text-[8px] font-black uppercase tracking-widest">RESULTADOS</span>
         </div>
       </div>
  
       {/* 2. Main content router */}
-      <div className="flex-grow flex flex-col items-center justify-center max-w-2xl mx-auto w-full">
+      <div className="flex-grow flex flex-col items-center justify-center max-w-2xl mx-auto w-full min-h-0">
         
-        {/* Step: Selection */}
+        {/* Step: Selection (mockup 4) */}
         {step === 'selection' && (
-          <div className="space-y-8 w-full fade-in">
+          <div className="space-y-6 w-full fade-in font-mono">
             <div className="text-center">
-              <SectionTitle
-                title="Configuración de Calibración Acústica"
-                subtitle="Selecciona la señal de excitación del impulso"
-                icon={<Volume2 className="w-4 h-4 text-accent animate-pulse" />}
-              />
-              <p className="text-text-soft text-xs leading-relaxed max-w-md mx-auto -mt-3">
-                Selecciona el método de excitación para medir la acústica de tu sala. Asegura silencio ambiental antes de comenzar.
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Volume2 className="w-5 h-5 text-accent animate-pulse" />
+                <h4 className="text-[13px] font-black text-white uppercase tracking-wider">
+                  CALIBRADOR ACÚSTICO INTELIGENTE
+                </h4>
+              </div>
+              <span className="text-[9px] text-accent uppercase tracking-widest block font-extrabold mb-4">
+                ELIGE LA SEÑAL DE PRUEBA PARA EL ANÁLISIS DE SALA
+              </span>
+              <p className="text-text-soft text-[10px] leading-relaxed max-w-md mx-auto">
+                Mide las resonancias acústicas físicas de tu espacio y genera perfiles correctivos Sonarworks-style limitados a ±6 dB.
               </p>
             </div>
             
@@ -142,18 +191,22 @@ export const EQCalibration = ({ onNavigateToEQ }: EQCalibrationProps) => {
               {/* Method: Sine sweep */}
               <button 
                 onClick={() => setSignal('sweep')}
-                className={`p-6 rounded-2xl border text-left cursor-pointer transition-all duration-200 flex flex-col justify-between h-40 ${signal === 'sweep' ? 'border-accent bg-accent/5' : 'border-white/5 bg-white/[0.01] hover:border-white/10 hover:bg-white/[0.03]'}`}
+                className={`p-5 rounded-2xl border text-left cursor-pointer transition-all duration-200 flex flex-col justify-between h-36 ${
+                  signal === 'sweep' 
+                    ? 'border-accent bg-accent/[0.02] bg-white/5 dark:bg-black/20' 
+                    : 'border-white/5 bg-white/[0.01] hover:border-white/10 bg-white/5 dark:bg-black/20'
+                }`}
               >
-                <div className="flex justify-between items-start w-full mb-3">
+                <div className="flex justify-between items-start w-full mb-2">
                   <div className="p-2 bg-accent/10 rounded-xl text-accent">
-                    <Zap className="w-5 h-5" />
+                    <Zap className="w-4.5 h-4.5" />
                   </div>
-                  {signal === 'sweep' && <div className="w-2.5 h-2.5 rounded-full bg-accent shadow-[0_0_8px_var(--accent)]" />}
+                  {signal === 'sweep' && <div className="w-2.5 h-2.5 rounded-full bg-accent shadow-[0_0_8px_rgba(255,140,0,0.8)]" />}
                 </div>
                 <div>
-                  <h4 className="text-white font-extrabold text-sm mb-1">Barrido Senoidal</h4>
-                  <p className="text-[9px] text-text-soft font-mono leading-relaxed uppercase tracking-tighter">
-                    Barrido logarítmico 20Hz-20kHz. Alta precisión para identificar resonancias de fase.
+                  <h4 className="text-white font-extrabold text-[10.5px] mb-1">Barrido Senoidal (Círculo Acústico)</h4>
+                  <p className="text-[7.5px] text-text-soft font-bold leading-relaxed uppercase tracking-wide">
+                    Barrido logarítmico 20Hz-20kHz. Alta precisión matemática para resonancias modales graves.
                   </p>
                 </div>
               </button>
@@ -161,203 +214,217 @@ export const EQCalibration = ({ onNavigateToEQ }: EQCalibrationProps) => {
               {/* Method: Pink noise */}
               <button 
                 onClick={() => setSignal('pink')}
-                className={`p-6 rounded-2xl border text-left cursor-pointer transition-all duration-200 flex flex-col justify-between h-40 ${signal === 'pink' ? 'border-accent bg-accent/5' : 'border-white/5 bg-white/[0.01] hover:border-white/10 hover:bg-white/[0.03]'}`}
+                className={`p-5 rounded-2xl border text-left cursor-pointer transition-all duration-200 flex flex-col justify-between h-36 ${
+                  signal === 'pink' 
+                    ? 'border-accent bg-accent/[0.02] bg-white/5 dark:bg-black/20' 
+                    : 'border-white/5 bg-white/[0.01] hover:border-white/10 bg-white/5 dark:bg-black/20'
+                }`}
               >
-                <div className="flex justify-between items-start w-full mb-3">
+                <div className="flex justify-between items-start w-full mb-2">
                   <div className="p-2 bg-accent/10 rounded-xl text-accent">
-                    <Activity className="w-5 h-5" />
+                    <Activity className="w-4.5 h-4.5" />
                   </div>
-                  {signal === 'pink' && <div className="w-2.5 h-2.5 rounded-full bg-accent shadow-[0_0_8px_var(--accent)]" />}
+                  {signal === 'pink' && <div className="w-2.5 h-2.5 rounded-full bg-accent shadow-[0_0_8px_rgba(255,140,0,0.8)]" />}
                 </div>
                 <div>
-                  <h4 className="text-white font-extrabold text-sm mb-1">Ruido Rosa</h4>
-                  <p className="text-[9px] text-text-soft font-mono leading-relaxed uppercase tracking-tighter">
-                    Energía constante por octava. Respuesta más equilibrada similar a la audición humana.
+                  <h4 className="text-white font-extrabold text-[10.5px] mb-1">Ruido Rosa Constante</h4>
+                  <p className="text-[7.5px] text-text-soft font-bold leading-relaxed uppercase tracking-wide">
+                    Energía equilibrada por octava. Perfecto para analizar el balance tonal psicoacústico real.
                   </p>
                 </div>
               </button>
             </div>
  
-            <Button 
-              variant="primary" 
-              size="lg" 
-              className="w-full mt-4" 
+            <button 
+              className="w-full bg-accent hover:bg-accent/90 text-black font-extrabold px-6 py-3 rounded-xl flex items-center justify-center gap-2 transition-all uppercase tracking-wider text-[10.5px] cursor-pointer shadow-[0_0_12px_rgba(255,140,0,0.2)] mt-2"
               onClick={startCalibration}
-              icon={<Play className="w-4 h-4" />}
             >
-              Iniciar Calibración de Sala
-            </Button>
+              <span>▶</span> INICIAR CALIBRACIÓN DE SALA
+            </button>
           </div>
         )}
- 
+  
         {/* Step: Measuring progress */}
         {step === 'measuring' && (
-          <div className="text-center space-y-8 w-full max-w-md fade-in flex flex-col items-center">
+          <div className="text-center space-y-6 w-full max-w-md fade-in flex flex-col items-center font-mono">
             {/* Round progress SVGs */}
-            <div className="relative w-32 h-32">
+            <div className="relative w-28 h-28 select-none">
               <svg className="w-full h-full transform -rotate-90">
-                <circle cx="64" cy="64" r="58" stroke="rgba(255,255,255,0.03)" strokeWidth="6" fill="transparent" />
+                <circle cx="56" cy="56" r="50" stroke="rgba(255,255,255,0.03)" strokeWidth="5" fill="transparent" />
                 <circle 
-                  cx="64" 
-                  cy="64" 
-                  r="58" 
+                  cx="56" 
+                  cy="56" 
+                  r="50" 
                   stroke="#ff8c00" 
-                  strokeWidth="6" 
+                  strokeWidth="5" 
                   fill="transparent" 
-                  strokeDasharray={364} 
-                  strokeDashoffset={364 - (364 * progress) / 100} 
+                  strokeDasharray={314} 
+                  strokeDashoffset={314 - (314 * progress) / 100} 
                   className="transition-all duration-300 stroke-round"
                 />
               </svg>
-              <div className="absolute inset-0 flex items-center justify-center flex-col select-none">
-                <span className="text-2xl font-black text-white font-mono">{Math.round(progress)}%</span>
+              <div className="absolute inset-0 flex items-center justify-center flex-col">
+                <span className="text-xl font-black text-white">{Math.round(progress)}%</span>
               </div>
             </div>
             
             <div className="space-y-1">
-              <h3 className="text-lg font-bold text-white uppercase tracking-wider">Capturando respuesta de sala...</h3>
-              <p className="mono text-[10px] text-accent animate-pulse uppercase">Mantén absoluto silencio ambiental</p>
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Capturando impulsos y reverberación...</h3>
+              <p className="text-[8.5px] text-accent animate-pulse uppercase tracking-widest font-bold">Mantén absoluto silencio en la sala</p>
             </div>
           </div>
         )}
- 
-        {/* Step: Result summary */}
-        {step === 'result' && (
-          <div className="w-full space-y-6 fade-in">
+  
+        {/* Step: Result summary and inputs (mockup 3) */}
+        {step === 'result' && analysisResult && (
+          <div className="w-full space-y-4 fade-in overflow-y-auto no-scrollbar max-h-[calc(100vh-230px)] pr-1 font-mono">
             <div className="text-center">
-              <SectionTitle
-                title="Calibración Acústica Completada"
-                subtitle="Curva de respuesta compensatoria calculada"
-                icon={<CheckCircle2 className="w-4 h-4 text-success" />}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Table readout */}
-              <div className="bg-[#05070a] border border-white/5 rounded-2xl p-4 max-h-[180px] overflow-y-auto no-scrollbar flex flex-col justify-between">
-                <table className="w-full text-xs text-left font-mono">
-                  <thead className="text-[9px] uppercase tracking-widest text-text-muted font-bold border-b border-white/5">
-                    <tr>
-                      <th className="pb-2 font-semibold">Frecuencia (Hz)</th>
-                      <th className="pb-2 text-right font-semibold">Corrección (dB)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {correctionData.map((band, idx) => (
-                      <tr key={idx} className="border-b border-white/5 last:border-0 hover:bg-white/[0.01]">
-                        <td className="py-2 text-text-soft font-medium">
-                          {band.freq < 1000 ? `${band.freq} Hz` : `${(band.freq/1000).toFixed(1)} kHz`}
-                        </td>
-                        <td className={`py-2 text-right font-bold ${band.gain > 0 ? 'text-accent' : band.gain < 0 ? 'text-blue-400' : 'text-text-muted'}`}>
-                          {band.gain > 0 ? '+' : ''}{band.gain.toFixed(1)} dB
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="flex items-center justify-center gap-2 mb-1.5">
+                <CheckCircle2 className="w-5 h-5 text-success animate-pulse" />
+                <h4 className="text-[13px] font-black text-white uppercase tracking-wider">
+                  DIAGNÓSTICO ACÚSTICO COMPLETADO
+                </h4>
               </div>
-
-              {/* Dynamic SVG Visual Curve Representation of the EQ */}
-              <div className="bg-[#05070a] border border-white/5 rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden h-[180px]">
-                <span className="mono text-[9px] uppercase tracking-widest text-text-muted font-bold block mb-2 text-center">Curva Correctiva Recomendada</span>
-                <div className="w-full flex-grow relative bg-black/30 rounded-xl overflow-hidden border border-white/[0.02] flex items-center justify-center p-2">
-                  <svg className="w-full h-full" viewBox="0 0 240 80" preserveAspectRatio="none">
-                    {/* Grid horizontal lines */}
-                    <line x1="0" y1="40" x2="240" y2="40" stroke="rgba(255,255,255,0.06)" strokeDasharray="3" strokeWidth="1" />
-                    
-                    {/* Grid vertical lines */}
-                    <line x1="40" y1="0" x2="40" y2="80" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-                    <line x1="80" y1="0" x2="80" y2="80" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-                    <line x1="120" y1="0" x2="120" y2="80" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-                    <line x1="160" y1="0" x2="160" y2="80" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-                    <line x1="200" y1="0" x2="200" y2="80" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-
-                    {/* Smooth Bezier Path */}
-                    {(() => {
-                      if (correctionData.length === 0) return null
-                      const points = correctionData.map((band, idx) => {
-                        const x = 20 + idx * 50
-                        const y = 40 - (band.gain / 12) * 28 // normalized coordinates
-                        return { x, y }
-                      })
-
-                      let path = `M 0 40 L ${points[0].x} ${points[0].y}`
-                      for (let i = 0; i < points.length - 1; i++) {
-                        const p0 = points[i]
-                        const p1 = points[i+1]
-                        const cpX1 = p0.x + 25
-                        const cpY1 = p0.y
-                        const cpX2 = p1.x - 25
-                        const cpY2 = p1.y
-                        path += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${p1.x} ${p1.y}`
-                      }
-                      path += ` L 240 40`
-
-                      return (
-                        <>
-                          <path
-                            d={`${path} L 240 80 L 0 80 Z`}
-                            fill="url(#result-curve-grad)"
-                            className="opacity-20"
-                          />
-                          <defs>
-                            <linearGradient id="result-curve-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-                              <stop offset="0%" stopColor="#ff8c00" />
-                              <stop offset="100%" stopColor="transparent" />
-                            </linearGradient>
-                          </defs>
-                          <path
-                            d={path}
-                            fill="none"
-                            stroke="#ff8c00"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                          />
-                          {points.map((p, i) => (
-                            <circle
-                              key={i}
-                              cx={p.x}
-                              cy={p.y}
-                              r="2.5"
-                              fill="#ff8c00"
-                              stroke="#05070a"
-                              strokeWidth="1"
-                            />
-                          ))}
-                        </>
-                      )
-                    })()}
-                  </svg>
+              <span className="text-[9px] text-accent uppercase tracking-widest block font-extrabold">
+                EL SISTEMA INTELIGENTE HA ANALIZADO LA RESPUESTA FÍSICA DE TU SALA
+              </span>
+            </div>
+ 
+            {/* General rating and Custom Room inputs */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {/* Rating Card */}
+              <div className="bg-[#05070a] border border-white/5 rounded-2xl p-3 flex flex-col justify-between items-center text-center font-mono h-[135px]">
+                <span className="text-[7.5px] text-text-soft uppercase tracking-widest font-black">RATING DE LA SALA</span>
+                
+                {/* Monospace huge colored rating name exactly like mockup */}
+                <span className={`text-2xl font-black uppercase my-1.5 tracking-widest ${
+                  analysisResult.acousticRating === 'Excelente' ? 'text-success' :
+                  analysisResult.acousticRating === 'Buena' ? 'text-yellow-500' :
+                  analysisResult.acousticRating === 'Tratable' ? 'text-orange-500' : 'text-danger'
+                }`}>
+                  {analysisResult.acousticRating}
+                </span>
+                
+                <span className="text-[7.5px] text-text-muted leading-tight uppercase font-bold tracking-tight">
+                  DESVIACIÓN PROMEDIO: <strong className="text-white">{analysisResult.averageRMS.toFixed(1)} DB</strong>
+                </span>
+              </div>
+ 
+              {/* Form Input Card */}
+              <div className="md:col-span-2 bg-[#05070a] border border-white/5 rounded-2xl p-3 flex flex-col gap-2.5 h-[135px]">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[7.5px] uppercase tracking-widest text-text-soft font-black block">
+                    NOMBRE DEL PERFIL DE SALA
+                  </label>
+                  <input
+                    type="text"
+                    value={roomName}
+                    onChange={(e) => setRoomName(e.target.value)}
+                    placeholder="Ej. Mi Estudio, Dormitorio Mezcla..."
+                    className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-3 py-1.5 font-mono text-[10px] text-white focus:outline-none focus:border-accent"
+                  />
+                </div>
+ 
+                <div className="flex flex-col gap-1">
+                  <label className="text-[7.5px] uppercase tracking-widest text-text-soft font-black block">
+                    OBSERVACIONES / NOTAS
+                  </label>
+                  <input
+                    type="text"
+                    value={roomNotes}
+                    onChange={(e) => setRoomNotes(e.target.value)}
+                    placeholder="Ej. Cerca de pared, cortinas cerradas..."
+                    className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-3 py-1.5 font-mono text-[10px] text-white focus:outline-none focus:border-accent"
+                  />
+                </div>
+              </div>
+            </div>
+ 
+            {/* Detailed Diagnostics: Issues warning tags & visual recommendations */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* List of Detected Issues */}
+              <div className="bg-[#05070a] border border-white/5 rounded-2xl p-3.5 flex flex-col gap-2 min-h-[140px] max-h-[160px] overflow-y-auto no-scrollbar">
+                <span className="text-[7.5px] uppercase tracking-widest text-text-soft font-black block mb-1">
+                  PROBLEMAS ESPECTRALES IDENTIFICADOS
+                </span>
+                
+                <div className="flex flex-col gap-2">
+                  {analysisResult.issues.map((issue, idx) => (
+                    <div key={idx} className="flex gap-2 items-start bg-white/[0.01] border border-white/[0.02] p-2 rounded-xl">
+                      {issue.type === 'resonance' ? (
+                        <AlertCircle className="w-3.5 h-3.5 text-accent flex-shrink-0 mt-0.5" />
+                      ) : (
+                        <Activity className="w-3.5 h-3.5 text-blue-400 flex-shrink-0 mt-0.5" />
+                      )}
+                      
+                      <div className="min-w-0 flex-grow font-mono">
+                        <h6 className="text-[8.5px] font-black text-white leading-tight uppercase tracking-wide">
+                          {issue.message}
+                        </h6>
+                        <p className="text-[7.5px] text-text-muted leading-tight mt-0.5 uppercase tracking-wide font-bold">
+                          {issue.description}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+ 
+              {/* Suggested EQ correction curve */}
+              <div className="bg-[#05070a] border border-white/5 rounded-2xl p-3.5 flex flex-col gap-2 min-h-[140px] max-h-[160px] overflow-y-auto no-scrollbar">
+                <span className="text-[7.5px] uppercase tracking-widest text-text-soft font-black block mb-1">
+                  RECOMENDACIÓN CORRECTIVA PARAMÉTRICA (±6 DB)
+                </span>
+                
+                <div className="flex flex-col gap-1.5">
+                  {recommendations.map((rec, idx) => (
+                    <div key={idx} className="flex justify-between items-center bg-white/[0.01] border border-white/[0.02] p-1 px-2 rounded-xl font-mono text-[8px]">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-text-soft font-bold uppercase truncate max-w-[60px]">{rec.id.replace('-shelf', '')}</span>
+                        <span className="text-[7px] text-text-muted font-bold">({rec.frequency} HZ)</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
+                        <span className="text-[7.5px] text-text-muted font-bold max-w-[150px] truncate uppercase">{rec.reason.split(' para ')[0]}</span>
+                        <span className={`font-black text-[7.5px] text-right min-w-[45px] px-1.5 py-0.5 rounded border uppercase ${
+                          rec.suggestedGain > 0 ? 'text-accent bg-accent/5 border-accent/15' :
+                          rec.suggestedGain < 0 ? 'text-blue-400 bg-blue-500/5 border-blue-400/15' :
+                          'text-text-muted'
+                        }`}>
+                          {rec.suggestedGain > 0 ? '+' : ''}{rec.suggestedGain.toFixed(1)} DB
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
  
             {/* Results action options */}
             {applied ? (
-              <div className="py-4 bg-success/15 text-success border border-success/25 text-center font-bold text-xs uppercase tracking-widest rounded-xl animate-pulse font-mono flex items-center justify-center gap-2">
+              <div className="py-3.5 bg-success/15 text-success border border-success/25 text-center font-bold text-xs uppercase tracking-widest rounded-xl animate-pulse font-mono flex items-center justify-center gap-2 select-none">
                 <CheckCircle2 className="w-4 h-4" />
-                ¡Corrección Aplicada y Enrutada!
+                ¡CURVA APLICADA Y PERFIL PERSISTIDO!
               </div>
             ) : (
               <div className="flex gap-4">
-                <Button variant="secondary" size="md" className="flex-grow flex-shrink-0 w-1/3" onClick={() => setStep('selection')} icon={<RefreshCw className="w-3.5 h-3.5" />}>
-                  Repetir
-                </Button>
-                <Button 
-                  variant="primary" 
-                  size="md" 
-                  className="flex-grow w-2/3" 
-                  onClick={applyCorrection} 
-                  icon={<ShieldCheck className="w-3.5 h-3.5" />}
+                <button 
+                  className="w-1/3 bg-white/5 hover:bg-white/10 text-white font-extrabold px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all uppercase tracking-wider text-[9.5px] border border-white/10 cursor-pointer"
+                  onClick={() => setStep('selection')} 
                 >
-                  Aplicar y Ver Ecualizador
-                </Button>
+                  <RefreshCw className="w-3.5 h-3.5" /> Repetir Medición
+                </button>
+                <button 
+                  className="w-2/3 bg-accent hover:bg-accent/90 text-black font-extrabold px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all uppercase tracking-wider text-[9.5px] cursor-pointer shadow-[0_0_12px_rgba(255,140,0,0.2)]"
+                  onClick={handleApplyAndSave} 
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" /> APLICAR CURVA Y GUARDAR SALA
+                </button>
               </div>
             )}
           </div>
         )}
       </div>
- 
     </GlassPanel>
   )
 }

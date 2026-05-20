@@ -9,6 +9,8 @@ interface AppShellProps {
   setActiveTab: (tab: TabId) => void
   engineRunning: boolean
   toggleEngine: () => void
+  theme: 'dark' | 'light'
+  toggleTheme: () => void
 }
 
 export function AppShell({
@@ -16,14 +18,17 @@ export function AppShell({
   activeTab,
   setActiveTab,
   engineRunning,
-  toggleEngine
+  toggleEngine,
+  theme,
+  toggleTheme
 }: AppShellProps) {
   // Map TabId to human readable label in Spanish
   const tabLabels: Record<TabId, string> = {
     analyzer: 'Analizador Espectral',
     calibrate: 'Calibración de Sala',
     tuner: 'Afinador Cromático',
-    eq: 'Ecualizador Paramétrico'
+    eq: 'Ecualizador',
+    docs: 'Documentación TFG'
   }
 
   return (
@@ -42,6 +47,8 @@ export function AppShell({
           setActiveTab={setActiveTab}
           engineRunning={engineRunning}
           toggleEngine={toggleEngine}
+          theme={theme}
+          toggleTheme={toggleTheme}
         />
 
         {/* Content Shell */}
