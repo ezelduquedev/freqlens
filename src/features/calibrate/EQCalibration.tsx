@@ -191,10 +191,10 @@ export const EQCalibration = ({ onNavigateToEQ }: EQCalibrationProps) => {
               {/* Method: Sine sweep */}
               <button 
                 onClick={() => setSignal('sweep')}
-                className={`p-5 rounded-2xl border text-left cursor-pointer transition-all duration-200 flex flex-col justify-between h-36 ${
+                className={`p-5 rounded-3xl border text-left cursor-pointer transition-all duration-200 flex flex-col justify-between h-36 bg-white dark:bg-surface shadow-[0_8px_30px_rgba(0,0,0,0.03)] dark:shadow-none ${
                   signal === 'sweep' 
-                    ? 'border-accent bg-accent/[0.02] bg-white/5 dark:bg-black/20' 
-                    : 'border-white/5 bg-white/[0.01] hover:border-white/10 bg-white/5 dark:bg-black/20'
+                    ? 'border-accent/40 bg-accent/[0.01] shadow-[0_8px_30px_rgba(255,140,0,0.08)]' 
+                    : 'border-black/5 dark:border-white/5 hover:border-accent/20'
                 }`}
               >
                 <div className="flex justify-between items-start w-full mb-2">
@@ -214,10 +214,10 @@ export const EQCalibration = ({ onNavigateToEQ }: EQCalibrationProps) => {
               {/* Method: Pink noise */}
               <button 
                 onClick={() => setSignal('pink')}
-                className={`p-5 rounded-2xl border text-left cursor-pointer transition-all duration-200 flex flex-col justify-between h-36 ${
+                className={`p-5 rounded-3xl border text-left cursor-pointer transition-all duration-200 flex flex-col justify-between h-36 bg-white dark:bg-surface shadow-[0_8px_30px_rgba(0,0,0,0.03)] dark:shadow-none ${
                   signal === 'pink' 
-                    ? 'border-accent bg-accent/[0.02] bg-white/5 dark:bg-black/20' 
-                    : 'border-white/5 bg-white/[0.01] hover:border-white/10 bg-white/5 dark:bg-black/20'
+                    ? 'border-accent/40 bg-accent/[0.01] shadow-[0_8px_30px_rgba(255,140,0,0.08)]' 
+                    : 'border-black/5 dark:border-white/5 hover:border-accent/20'
                 }`}
               >
                 <div className="flex justify-between items-start w-full mb-2">
@@ -290,10 +290,9 @@ export const EQCalibration = ({ onNavigateToEQ }: EQCalibrationProps) => {
               </span>
             </div>
  
-            {/* General rating and Custom Room inputs */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {/* Rating Card */}
-              <div className="bg-[#05070a] border border-white/5 rounded-2xl p-3 flex flex-col justify-between items-center text-center font-mono h-[135px]">
+              <div className="bg-[#05070a] border border-white/5 rounded-3xl p-3 flex flex-col justify-between items-center text-center font-mono h-[135px]">
                 <span className="text-[7.5px] text-text-soft uppercase tracking-widest font-black">RATING DE LA SALA</span>
                 
                 {/* Monospace huge colored rating name exactly like mockup */}
@@ -311,7 +310,7 @@ export const EQCalibration = ({ onNavigateToEQ }: EQCalibrationProps) => {
               </div>
  
               {/* Form Input Card */}
-              <div className="md:col-span-2 bg-[#05070a] border border-white/5 rounded-2xl p-3 flex flex-col gap-2.5 h-[135px]">
+              <div className="md:col-span-2 bg-[#05070a] border border-white/5 rounded-3xl p-3 flex flex-col gap-2.5 h-[135px]">
                 <div className="flex flex-col gap-1">
                   <label className="text-[7.5px] uppercase tracking-widest text-text-soft font-black block">
                     NOMBRE DEL PERFIL DE SALA
@@ -321,7 +320,7 @@ export const EQCalibration = ({ onNavigateToEQ }: EQCalibrationProps) => {
                     value={roomName}
                     onChange={(e) => setRoomName(e.target.value)}
                     placeholder="Ej. Mi Estudio, Dormitorio Mezcla..."
-                    className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-3 py-1.5 font-mono text-[10px] text-white focus:outline-none focus:border-accent"
+                    className="w-full bg-white/[0.02] border border-white/5 rounded-2xl px-3 py-1.5 font-mono text-[10px] text-white focus:outline-none focus:border-accent"
                   />
                 </div>
  
@@ -334,7 +333,7 @@ export const EQCalibration = ({ onNavigateToEQ }: EQCalibrationProps) => {
                     value={roomNotes}
                     onChange={(e) => setRoomNotes(e.target.value)}
                     placeholder="Ej. Cerca de pared, cortinas cerradas..."
-                    className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-3 py-1.5 font-mono text-[10px] text-white focus:outline-none focus:border-accent"
+                    className="w-full bg-white/[0.02] border border-white/5 rounded-2xl px-3 py-1.5 font-mono text-[10px] text-white focus:outline-none focus:border-accent"
                   />
                 </div>
               </div>
@@ -343,14 +342,14 @@ export const EQCalibration = ({ onNavigateToEQ }: EQCalibrationProps) => {
             {/* Detailed Diagnostics: Issues warning tags & visual recommendations */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {/* List of Detected Issues */}
-              <div className="bg-[#05070a] border border-white/5 rounded-2xl p-3.5 flex flex-col gap-2 min-h-[140px] max-h-[160px] overflow-y-auto no-scrollbar">
+              <div className="bg-[#05070a] border border-white/5 rounded-3xl p-3.5 flex flex-col gap-2 min-h-[140px] max-h-[160px] overflow-y-auto no-scrollbar">
                 <span className="text-[7.5px] uppercase tracking-widest text-text-soft font-black block mb-1">
                   PROBLEMAS ESPECTRALES IDENTIFICADOS
                 </span>
                 
                 <div className="flex flex-col gap-2">
                   {analysisResult.issues.map((issue, idx) => (
-                    <div key={idx} className="flex gap-2 items-start bg-white/[0.01] border border-white/[0.02] p-2 rounded-xl">
+                    <div key={idx} className="flex gap-2 items-start bg-white/[0.01] border border-white/[0.02] p-2 rounded-2xl">
                       {issue.type === 'resonance' ? (
                         <AlertCircle className="w-3.5 h-3.5 text-accent flex-shrink-0 mt-0.5" />
                       ) : (
@@ -371,14 +370,14 @@ export const EQCalibration = ({ onNavigateToEQ }: EQCalibrationProps) => {
               </div>
  
               {/* Suggested EQ correction curve */}
-              <div className="bg-[#05070a] border border-white/5 rounded-2xl p-3.5 flex flex-col gap-2 min-h-[140px] max-h-[160px] overflow-y-auto no-scrollbar">
+              <div className="bg-[#05070a] border border-white/5 rounded-3xl p-3.5 flex flex-col gap-2 min-h-[140px] max-h-[160px] overflow-y-auto no-scrollbar">
                 <span className="text-[7.5px] uppercase tracking-widest text-text-soft font-black block mb-1">
                   RECOMENDACIÓN CORRECTIVA PARAMÉTRICA (±6 DB)
                 </span>
                 
                 <div className="flex flex-col gap-1.5">
                   {recommendations.map((rec, idx) => (
-                    <div key={idx} className="flex justify-between items-center bg-white/[0.01] border border-white/[0.02] p-1 px-2 rounded-xl font-mono text-[8px]">
+                    <div key={idx} className="flex justify-between items-center bg-white/[0.01] border border-white/[0.02] p-1 px-2 rounded-2xl font-mono text-[8px]">
                       <div className="flex items-center gap-1.5">
                         <span className="text-text-soft font-bold uppercase truncate max-w-[60px]">{rec.id.replace('-shelf', '')}</span>
                         <span className="text-[7px] text-text-muted font-bold">({rec.frequency} HZ)</span>
@@ -386,7 +385,7 @@ export const EQCalibration = ({ onNavigateToEQ }: EQCalibrationProps) => {
                       
                       <div className="flex items-center gap-3">
                         <span className="text-[7.5px] text-text-muted font-bold max-w-[150px] truncate uppercase">{rec.reason.split(' para ')[0]}</span>
-                        <span className={`font-black text-[7.5px] text-right min-w-[45px] px-1.5 py-0.5 rounded border uppercase ${
+                        <span className={`font-black text-[7.5px] text-right min-w-[45px] px-1.5 py-0.5 rounded-full border uppercase ${
                           rec.suggestedGain > 0 ? 'text-accent bg-accent/5 border-accent/15' :
                           rec.suggestedGain < 0 ? 'text-blue-400 bg-blue-500/5 border-blue-400/15' :
                           'text-text-muted'

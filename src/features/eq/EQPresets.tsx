@@ -348,10 +348,10 @@ export const EQPresets = ({ onPresetApply, variant = 'full' }: EQPresetsProps) =
                 <button
                   key={preset.id}
                   onClick={() => applyPreset(preset)}
-                  className={`p-3 rounded-xl text-left border cursor-pointer hover:bg-white/[0.02] flex flex-col justify-between transition-all duration-150 bg-white dark:bg-surface shadow-sm ${
+                  className={`p-3.5 rounded-3xl text-left border cursor-pointer hover:bg-white/[0.02] flex flex-col justify-between transition-all duration-200 bg-white dark:bg-surface shadow-[0_8px_30px_rgba(0,0,0,0.03)] dark:shadow-none ${
                     isActive 
-                      ? 'border-accent bg-accent/[0.02] shadow-[0_0_8px_rgba(255,140,0,0.1)]' 
-                      : 'border-black/5 dark:border-white/5'
+                      ? 'border-accent/40 bg-accent/[0.01] shadow-[0_8px_30px_rgba(255,140,0,0.08)]' 
+                      : 'border-black/5 dark:border-white/5 hover:border-accent/20'
                   }`}
                 >
                   <div className="flex justify-between items-center w-full min-w-0">
@@ -432,10 +432,10 @@ export const EQPresets = ({ onPresetApply, variant = 'full' }: EQPresetsProps) =
                 <div
                   key={prof.id}
                   onClick={() => applyProfile(prof)}
-                  className={`px-2 py-1.5 rounded-xl border text-left cursor-pointer transition-all duration-150 flex flex-col bg-white dark:bg-surface shadow-sm ${
+                  className={`p-4 rounded-3xl border text-left cursor-pointer transition-all duration-200 flex flex-col bg-white dark:bg-surface shadow-[0_8px_30px_rgba(0,0,0,0.03)] dark:shadow-none ${
                     isActive 
-                      ? 'border-accent bg-accent/[0.05] shadow-[0_0_8px_rgba(255,140,0,0.1)]' 
-                      : 'border-black/5 dark:border-white/5 hover:border-accent/30'
+                      ? 'border-accent/40 bg-accent/[0.01] shadow-[0_8px_30px_rgba(255,140,0,0.08)]' 
+                      : 'border-black/5 dark:border-white/5 hover:border-accent/20'
                   }`}
                 >
                   {/* Single compact row: dot + name + mini-curve + rating */}
@@ -457,7 +457,7 @@ export const EQPresets = ({ onPresetApply, variant = 'full' }: EQPresetsProps) =
                     </div>
 
                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <span className={`text-[7px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider ${ratingColor}`}>
+                      <span className={`text-[7px] font-black px-2.5 py-0.5 rounded-full border uppercase tracking-widest ${ratingColor}`}>
                         {prof.acousticRating}
                       </span>
                       <span title="Editar notas" className="inline-flex">
@@ -497,7 +497,7 @@ export const EQPresets = ({ onPresetApply, variant = 'full' }: EQPresetsProps) =
 
                   {/* Issue pill - inline small */}
                   {prof.issues.length > 0 && (
-                    <div className={`mt-1 ml-3.5 px-1.5 py-0.5 rounded text-[6.5px] font-bold uppercase tracking-wider border leading-none w-fit ${
+                    <div className={`mt-1.5 ml-3.5 px-2 py-0.5 rounded-full text-[6.5px] font-black uppercase tracking-widest border leading-none w-fit ${
                       prof.acousticRating === 'Buena' 
                         ? 'border-yellow-500/20 text-yellow-500 bg-yellow-500/5' 
                         : 'border-orange-500/20 text-orange-500 bg-orange-500/5'
@@ -523,10 +523,10 @@ export const EQPresets = ({ onPresetApply, variant = 'full' }: EQPresetsProps) =
             <button
               key={preset.id}
               onClick={() => applyPreset(preset)}
-              className={`p-2 rounded-xl text-left border cursor-pointer transition-all duration-150 flex flex-col justify-between gap-1 bg-white dark:bg-surface shadow-sm ${
+              className={`p-3.5 rounded-3xl text-left border cursor-pointer transition-all duration-200 flex flex-col justify-between gap-1 bg-white dark:bg-surface shadow-[0_8px_30px_rgba(0,0,0,0.03)] dark:shadow-none ${
                 selectedId === preset.id
-                  ? 'border-accent bg-accent/[0.05] shadow-[0_0_8px_rgba(255,140,0,0.1)]'
-                  : 'border-black/5 dark:border-white/5 hover:border-accent/30'
+                  ? 'border-accent/40 bg-accent/[0.01] shadow-[0_8px_30px_rgba(255,140,0,0.08)]'
+                  : 'border-black/5 dark:border-white/5 hover:border-accent/20'
               }`}
             >
               <div className="flex justify-between items-center w-full min-w-0">
@@ -577,10 +577,10 @@ export const EQPresets = ({ onPresetApply, variant = 'full' }: EQPresetsProps) =
               <button
                 key={preset.id}
                 onClick={() => applyPreset(preset)}
-                className={`p-2 rounded-xl text-left border cursor-pointer transition-all duration-150 flex flex-col justify-between gap-1 bg-white dark:bg-surface shadow-sm ${
+                className={`p-3.5 rounded-3xl text-left border cursor-pointer transition-all duration-200 flex flex-col justify-between gap-1 bg-white dark:bg-surface shadow-[0_8px_30px_rgba(0,0,0,0.03)] dark:shadow-none ${
                   selectedId === preset.id
-                    ? 'border-accent bg-accent/[0.05] shadow-[0_0_8px_rgba(255,140,0,0.1)]'
-                    : 'border-black/5 dark:border-white/5 hover:border-accent/30'
+                    ? 'border-accent/40 bg-accent/[0.01] shadow-[0_8px_30px_rgba(255,140,0,0.08)]'
+                    : 'border-black/5 dark:border-white/5 hover:border-accent/20'
                 }`}
               >
                 <div className="flex justify-between items-center w-full min-w-0">
