@@ -1,5 +1,9 @@
 import { AdaptiveEQManager } from './AdaptiveEQManager'
-import yinProcessorUrl from './yin-processor.ts?url'
+
+// Importamos la URL del procesador de forma que Vite lo trate como un archivo estático
+// NOTA: Asegúrate de que el archivo se llame 'yin-processor.js' y esté en la misma carpeta
+const yinProcessorUrl = new URL('./yin-processor.js', import.meta.url)
+
 export type AudioEngineStatus = 'suspended' | 'running' | 'closed'
 
 export class AudioManager {
@@ -37,8 +41,7 @@ export class AudioManager {
         sampleRate: 48000,
       })
 
-      // Cargar Worklet de Pitch (YIN)
-      // Usando ?worker&url para compatibilidad con Vite 8
+      // Cargamos el módulo usando la URL procesada por Vite
       await this.context.audioWorklet.addModule(yinProcessorUrl)
       
       this.yinNode = new AudioWorkletNode(this.context, 'yin-processor')
@@ -53,15 +56,14 @@ export class AudioManager {
       
       this.source = this.context.createMediaStreamSource(this.stream)
       
-      // Cadena: Source -> EQ -> Analyser
-      // Y también: Source -> YinProcessor
+      // Cadena: Source -> YinProcessor
       this.source.connect(this.yinNode)
       
+      // Cadena: Source -> EQ -> Analyser
       const eqManager = AdaptiveEQManager.getInstance()
       eqManager.connect(this.source, this.analyser)
       
-      // Para evitar que el navegador suspenda el sub-grafo (optimización de ahorro de CPU),
-      // conectamos el analizador a un nodo de ganancia silencioso (0) que va al destination.
+      // Nodo silencioso para mantener el grafo activo
       const silentGain = this.context.createGain()
       silentGain.gain.value = 0
       this.analyser.connect(silentGain)
