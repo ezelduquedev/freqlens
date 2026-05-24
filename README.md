@@ -62,6 +62,8 @@ npm run build
 ---
 
 ## Estructura del proyecto
+
+```
 src/
 ├── core/
 │   ├── audio/          # AudioManager, AdaptiveEQManager, CalibrationService
@@ -76,8 +78,7 @@ src/
 ├── layouts/            # AppShell, Sidebar, Topbar
 ├── styles/             # tokens.css, theme.css, animations.css
 └── hooks/              # useAudio y hooks de estado
-
----
+```
 
 ## Módulos
 
