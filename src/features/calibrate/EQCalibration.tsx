@@ -5,8 +5,7 @@ import { AudioManager } from '../../core/audio/AudioManager'
 import { RoomAnalysisEngine, type RoomAnalysisResult } from '../../core/audio/RoomAnalysisEngine'
 import { EQRecommendationEngine, type SuggestedBand } from '../../core/audio/EQRecommendationEngine'
 import { RoomProfileStorage } from '../../core/audio/RoomProfileStorage'
-import { Activity, ShieldCheck, RefreshCw, Zap, Volume2, CheckCircle2, AlertCircle, FileDown } from 'lucide-react'
-import { downloadReport } from './RoomReportGenerator'
+import { Activity, ShieldCheck, RefreshCw, Zap, Volume2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { GlassPanel } from '../../ui/GlassPanel'
 
 interface EQCalibrationProps {
@@ -82,18 +81,6 @@ export const EQCalibration = ({ onNavigateToEQ }: EQCalibrationProps) => {
       console.error('Calibration failed', err)
       setStep('selection')
     }
-  }
-
-  const handleDownloadReport = () => {
-    if (!analysisResult) return
-    downloadReport({
-      roomName: roomName || 'Mi Sala',
-      roomNotes: roomNotes,
-      signalType: signal,
-      analysis: analysisResult,
-      recommendations,
-      timestamp: new Date(),
-    })
   }
 
   const handleApplyAndSave = () => {
@@ -432,13 +419,7 @@ export const EQCalibration = ({ onNavigateToEQ }: EQCalibrationProps) => {
                 >
                   <span>← Inicio</span>
                 </button>
-                <button
-                  className="flex-1 bg-blue-900/50 hover:bg-blue-800/60 text-blue-200 font-extrabold px-3 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all uppercase tracking-wider text-[9px] border border-blue-500/20 cursor-pointer"
-                  onClick={handleDownloadReport}
-                  title="Descargar informe completo de la sala en HTML"
-                >
-                  <FileDown className="w-3.5 h-3.5" /> Informe
-                </button>
+
                 <button
                   className="flex-1 bg-white hover:bg-white/90 text-black font-extrabold px-3 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all uppercase tracking-wider text-[9px] cursor-pointer shadow-[0_0_12px_rgba(255,140,0,0.2)]"
                   onClick={handleApplyAndSave}

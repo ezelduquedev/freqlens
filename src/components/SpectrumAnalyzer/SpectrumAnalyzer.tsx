@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/refs, @typescript-eslint/no-unused-vars */
 import { useRef, useCallback, useEffect, useState } from 'react'
 import { useAnimationFrame } from '../../hooks/useAnimationFrame'
 import { binToFreq, dbToY, calcRMS } from '../../utils/audio'
@@ -12,7 +11,11 @@ const MAX_DB = 10;
 type EQMode = 'voice' | 'music' | 'calibration';
 type ViewMode = 'espectro' | 'afinador';
 
-
+const EQ_PROFILES: Record<EQMode, (f: number) => number> = {
+  voice: (f) => (f < 100 ? -25 : f > 3000 && f < 6000 ? 12 : 0),
+  music: (f) => (f < 80 ? 10 : f > 8000 ? 7 : -5),
+  calibration: (f) => 0
+};
 
 function SpectrumAnalyzer({ analyser, audioContext }: { analyser: AnalyserNode, audioContext: AudioContext }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -20,7 +23,11 @@ function SpectrumAnalyzer({ analyser, audioContext }: { analyser: AnalyserNode, 
   
   const [view, setView] = useState<ViewMode>('espectro');
   const [mode, setMode] = useState<EQMode>('voice');
+  const [isGeneratorOutput, setIsGeneratorOutput] = useState(false);
+  const [genFreq, setGenFreq] = useState(440);
 
+  const oscillatorRef = useRef<OscillatorNode | null>(null);
+  const noteRef = useRef({ note: '--', cents: 0 });
   const rmsRef = useRef(0);
 
   // Manejo de resolución del Canvas (Anti-pixelado)
@@ -44,16 +51,7 @@ function SpectrumAnalyzer({ analyser, audioContext }: { analyser: AnalyserNode, 
     return () => window.removeEventListener('resize', resizeCanvas);
   }, [resizeCanvas]);
 
-  // Limit drawing to a target FPS to reduce CPU load
-  const MAX_FPS = 30;
-  const frameInterval = 1000 / MAX_FPS;
-  const lastDrawTime = useRef<number>(0);
-
   const draw = useCallback(() => {
-    const now = performance.now();
-    if (now - lastDrawTime.current < frameInterval) return; // skip frame
-    lastDrawTime.current = now;
-
     const canvas = canvasRef.current;
     if (!canvas || !analyser) return;
     const ctx = canvas.getContext('2d');
@@ -80,7 +78,7 @@ function SpectrumAnalyzer({ analyser, audioContext }: { analyser: AnalyserNode, 
       const freq = binToFreq(i, analyser.fftSize, audioContext.sampleRate);
       const x = (Math.log10(freq) - Math.log10(MIN_FREQ)) / (Math.log10(MAX_FREQ) - Math.log10(MIN_FREQ)) * W;
       const y = dbToY(freqData[i], MIN_DB, MAX_DB, H);
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
     ctx.stroke();
 
@@ -90,7 +88,6 @@ function SpectrumAnalyzer({ analyser, audioContext }: { analyser: AnalyserNode, 
     rmsRef.current = 20 * Math.log10(calcRMS(timeData) + 1e-10);
   }, [analyser, audioContext]);
 
-  // Use animation frame but respect target FPS
   useAnimationFrame(draw, true);
 
   return (
@@ -146,7 +143,7 @@ function SpectrumAnalyzer({ analyser, audioContext }: { analyser: AnalyserNode, 
               <button className="w-8 h-8 rounded-lg bg-slate-50 text-xs">▶</button>
             </div>
             <input type="range" className="w-full accent-orange-500" />
-            <div className="mt-2 text-2xl font-black">440<span className="text-xs text-slate-400 ml-1">Hz</span></div>
+            <div className="mt-2 text-2xl font-black">{genFreq}<span className="text-xs text-slate-400 ml-1">Hz</span></div>
           </div>
         </aside>
 

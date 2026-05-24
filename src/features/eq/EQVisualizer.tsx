@@ -1,6 +1,8 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useRef, useState } from 'react'
 import { AdaptiveEQManager, type EQBand } from '../../core/audio/AdaptiveEQManager'
+import { FileDown } from 'lucide-react'
+import { downloadRoomReport } from '../calibrate/RoomReportGenerator'
 import { GlassPanel } from '../../ui/GlassPanel'
 import { RoomProfileStorage, type RoomProfile } from '../../core/audio/RoomProfileStorage'
 
@@ -367,6 +369,42 @@ export const EQVisualizer = () => {
     }
   }
 
+  const handleDownloadReport = () => {
+    if (!activeProfile) return
+    downloadRoomReport({
+      roomName: activeProfile.name,
+      roomNotes: activeProfile.notes,
+      analysis: {
+        averageRMS: activeProfile.averageRMS,
+        acousticRating: activeProfile.acousticRating,
+        issues: activeProfile.issues,
+        bandAverages: {
+          subBass: activeProfile.averageRMS - 2,
+          bass: activeProfile.averageRMS + 1,
+          lowMids: activeProfile.averageRMS,
+          mids: activeProfile.averageRMS - 1,
+          highs: activeProfile.averageRMS - 4,
+        }
+      },
+      recommendations: Object.entries(activeProfile.eqValues).map(([id, gain]) => {
+        const freqMap: Record<string, number> = { 'hpf': 30, 'low-shelf': 100, 'mid-1': 500, 'mid-2': 2000, 'high-shelf': 8000 }
+        const typeMap: Record<string, BiquadFilterType> = { 'hpf': 'highpass', 'low-shelf': 'lowshelf', 'mid-1': 'peaking', 'mid-2': 'peaking', 'high-shelf': 'highshelf' }
+        return {
+          id,
+          frequency: freqMap[id] ?? 1000,
+          type: typeMap[id] ?? 'peaking',
+          suggestedGain: gain,
+          q: 0.707,
+          reason: 'Corrección correctiva calculada para este perfil de sala.'
+        }
+      }),
+      currentBands: bands,
+      advisorAccuracy: feedback.accuracy,
+      advisorStatus: feedback.status,
+      timestamp: new Date(),
+    })
+  }
+
   const feedback = getAcousticAdvisorFeedback(bands, activeProfile)
 
   return (
@@ -451,11 +489,21 @@ export const EQVisualizer = () => {
           </div>
         </div>
 
-        {/* Detailed diagnostic advisor message */}
-        <div className="flex-grow md:max-w-md w-full text-left md:text-right border-t md:border-t-0 md:border-l border-white/[0.04] pt-3 md:pt-0 md:pl-4">
+        {/* Detailed diagnostic advisor message + download button */}
+        <div className="flex-grow md:max-w-md w-full text-left md:text-right border-t md:border-t-0 md:border-l border-white/[0.04] pt-3 md:pt-0 md:pl-4 flex flex-col gap-2">
           <p className="text-[8.5px] text-text-soft leading-relaxed uppercase font-bold tracking-tight">
             {feedback.message}
           </p>
+          {activeProfile && (
+            <button
+              onClick={handleDownloadReport}
+              className="self-end flex items-center gap-1.5 bg-white/8 hover:bg-white/15 border border-white/15 text-white/70 hover:text-white font-bold px-3 py-1.5 rounded-lg transition-all text-[9px] uppercase tracking-widest cursor-pointer"
+              title="Descargar informe PDF de la sala calibrada"
+            >
+              <FileDown className="w-3 h-3" />
+              Informe de sala
+            </button>
+          )}
         </div>
       </GlassPanel>
     </div>

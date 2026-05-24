@@ -13,10 +13,10 @@ export interface AudioState {
 
 export function useAudio(fftSize: number = 2048): AudioState {
   const [status, setStatus] = useState<AudioStatus>('idle')
-  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null)
-  const [audioContext, setAudioContext] = useState<AudioContext | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const analyserRef     = useRef<AnalyserNode | null>(null)
   const streamRef       = useRef<MediaStream | null>(null)
 
   const start = useCallback(async () => {
@@ -31,26 +31,27 @@ export function useAudio(fftSize: number = 2048): AudioState {
       })
 
       // Crear el contexto de audio
-      const newAudioContext = new AudioContext()
+      const audioContext = new AudioContext()
 
       // Crear el analizador FFT
-      const newAnalyser = newAudioContext.createAnalyser()
-      newAnalyser.fftSize = fftSize
-      newAnalyser.smoothingTimeConstant = 0.8
-      newAnalyser.minDecibels = -90
-      newAnalyser.maxDecibels = -10
+      const analyser = audioContext.createAnalyser()
+      analyser.fftSize = fftSize
+      analyser.smoothingTimeConstant = 0.8
+      analyser.minDecibels = -90
+      analyser.maxDecibels = -10
 
       // Conectar: micrófono → analizador
-      const source = newAudioContext.createMediaStreamSource(stream)
-      source.connect(newAnalyser)
+      const source = audioContext.createMediaStreamSource(stream)
+      source.connect(analyser)
 
       // Guardar referencias
-      streamRef.current = stream
-      setAnalyser(newAnalyser)
-      setAudioContext(newAudioContext)
+      audioContextRef.current = audioContext
+      analyserRef.current     = analyser
+      streamRef.current       = stream
+
       setStatus('active')
       setError(null)
-    } catch {
+    } catch (e) {
       setStatus('error')
       setError('No se pudo acceder al micrófono')
     }
@@ -58,17 +59,17 @@ export function useAudio(fftSize: number = 2048): AudioState {
 
   const stop = useCallback(() => {
     streamRef.current?.getTracks().forEach(t => t.stop())
-    audioContext?.close()
-    setAnalyser(null)
-    setAudioContext(null)
-    streamRef.current = null
+    audioContextRef.current?.close()
+    audioContextRef.current = null
+    analyserRef.current     = null
+    streamRef.current       = null
     setStatus('idle')
-  }, [audioContext])
+  }, [])
 
   return {
     status,
-    analyser,
-    audioContext,
+    analyser: analyserRef.current,
+    audioContext: audioContextRef.current,
     error,
     start,
     stop,

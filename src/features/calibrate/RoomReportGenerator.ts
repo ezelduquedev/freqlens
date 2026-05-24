@@ -1,275 +1,287 @@
 import type { RoomAnalysisResult } from '../../core/audio/RoomAnalysisEngine'
 import type { SuggestedBand } from '../../core/audio/EQRecommendationEngine'
+import type { EQBand } from '../../core/audio/AdaptiveEQManager'
 
 export interface ReportData {
   roomName: string
-  roomNotes: string
-  signalType: 'sweep' | 'pink'
+  roomNotes?: string
+  signalType?: 'sweep' | 'pink'
   analysis: RoomAnalysisResult
   recommendations: SuggestedBand[]
+  currentBands?: EQBand[]
+  advisorAccuracy?: number
+  advisorStatus?: string
   timestamp: Date
 }
 
-function ratingColor(rating: string): string {
-  switch (rating) {
-    case 'Excelente': return '#30d158'
-    case 'Buena':     return '#f59e0b'
-    case 'Tratable':  return '#ff8c00'
-    case 'Crítica':   return '#ff453a'
-    default:          return '#9ba6b2'
-  }
+function ratingColor(r: string) {
+  return r === 'Excelente' ? '#15803d' : r === 'Buena' ? '#b45309' : r === 'Tratable' ? '#c2410c' : '#b91c1c'
+}
+function ratingBg(r: string) {
+  return r === 'Excelente' ? '#dcfce7' : r === 'Buena' ? '#fef3c7' : r === 'Tratable' ? '#ffedd5' : '#fee2e2'
 }
 
-function gainBar(gain: number): string {
-  const pct = Math.min(100, Math.abs(gain) / 4 * 100)
-  const color = gain > 0 ? '#ff8c00' : gain < 0 ? '#00d4ff' : '#444'
-  const label = gain > 0 ? `+${gain.toFixed(1)} dB` : `${gain.toFixed(1)} dB`
-  const dir = gain >= 0 ? 'left' : 'right'
+function gainLabel(g: number) {
+  return g > 0 ? `+${g.toFixed(1)} dB` : `${g.toFixed(1)} dB`
+}
+function gainColor(g: number) {
+  return g > 0.5 ? '#c2410c' : g < -0.5 ? '#1d4ed8' : '#374151'
+}
+
+function bandDisplayName(id: string) {
+  const m: Record<string, string> = {
+    'hpf': 'HPF (Paso Alto)',
+    'low-shelf': 'Low Shelf',
+    'mid-1': 'Mid-Low (500 Hz)',
+    'mid-2': 'Mid-High (2 kHz)',
+    'high-shelf': 'High Shelf',
+  }
+  return m[id] ?? id
+}
+
+function issueTypeLabel(t: string) {
+  return t === 'resonance' ? 'Resonancia' : t === 'cancellation' ? 'Cancelación' : 'Neutro'
+}
+function issueBadgeStyle(t: string) {
+  return t === 'resonance'
+    ? 'background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;'
+    : t === 'cancellation'
+    ? 'background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;'
+    : 'background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;'
+}
+
+function miniBar(gain: number): string {
+  const max = 4
+  const pct = Math.min(100, (Math.abs(gain) / max) * 100)
+  const color = gain > 0.5 ? '#ea580c' : gain < -0.5 ? '#2563eb' : '#9ca3af'
+  const side = gain >= 0 ? 'left:50%' : `right:50%;`
   return `
-    <div style="display:flex;align-items:center;gap:10px;">
-      <div style="flex:1;height:6px;background:#1e2330;border-radius:3px;position:relative;">
-        <div style="position:absolute;${dir}:50%;width:${pct / 2}%;height:100%;background:${color};border-radius:3px;"></div>
-        <div style="position:absolute;left:50%;top:-2px;width:1px;height:10px;background:#333;"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+      <div style="flex:1;height:8px;background:#e5e7eb;border-radius:4px;position:relative;overflow:hidden;">
+        <div style="position:absolute;top:0;height:100%;${side};width:${pct/2}%;background:${color};border-radius:4px;"></div>
+        <div style="position:absolute;left:50%;top:0;width:1px;height:100%;background:#9ca3af;"></div>
       </div>
-      <span style="font-family:monospace;font-size:11px;color:${color};min-width:52px;text-align:right;font-weight:700;">${label}</span>
+      <span style="font-family:monospace;font-size:12px;font-weight:700;color:${color};min-width:52px;">${gainLabel(gain)}</span>
     </div>`
 }
 
-function bandLabel(id: string): string {
-  const map: Record<string, string> = {
-    'hpf': 'HPF',
-    'low-shelf': 'Low Shelf',
-    'mid-1': 'Mid-Low',
-    'mid-2': 'Mid-High',
-    'high-shelf': 'High Shelf',
-  }
-  return map[id] ?? id
-}
-
-function issueIcon(type: string): string {
-  if (type === 'resonance') return '▲'
-  if (type === 'cancellation') return '▼'
-  return '●'
-}
-
-function issueColor(type: string): string {
-  if (type === 'resonance') return '#ff453a'
-  if (type === 'cancellation') return '#00d4ff'
-  return '#30d158'
-}
-
-function signalLabel(sig: 'sweep' | 'pink'): string {
-  return sig === 'sweep' ? 'Barrido Senoidal Logarítmico (20 Hz → 20 kHz)' : 'Ruido Rosa Voss-McCartney'
-}
-
-function bandRow(band: { label: string; freq: string; avg: number }): string {
-  const pct = Math.min(100, Math.max(0, (band.avg + 80) / 80 * 100))
-  const color = band.avg > -40 ? '#ff8c00' : band.avg > -55 ? '#f59e0b' : '#9ba6b2'
-  return `
-  <tr>
-    <td style="padding:8px 12px;font-size:11px;color:#9ba6b2;font-weight:600;white-space:nowrap;">${band.label}</td>
-    <td style="padding:8px 12px;font-size:11px;color:#6e7782;font-family:monospace;">${band.freq}</td>
-    <td style="padding:8px 12px;width:100%;">
-      <div style="background:#1e2330;border-radius:3px;height:5px;">
-        <div style="width:${pct}%;height:100%;background:${color};border-radius:3px;"></div>
-      </div>
-    </td>
-    <td style="padding:8px 12px;font-size:11px;font-family:monospace;color:${color};font-weight:700;white-space:nowrap;">${band.avg.toFixed(1)} dBFS</td>
-  </tr>`
-}
-
-export function generateRoomReport(data: ReportData): string {
-  const { roomName, roomNotes, signalType, analysis, recommendations, timestamp } = data
+export function generateRoomReportHTML(data: ReportData): string {
+  const { roomName, roomNotes, signalType, analysis, recommendations, currentBands, advisorAccuracy, advisorStatus, timestamp } = data
   const rc = ratingColor(analysis.acousticRating)
-  const dateStr = timestamp.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })
+  const rbg = ratingBg(analysis.acousticRating)
+  const dateStr = timestamp.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
   const timeStr = timestamp.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+  const signalLabel = signalType === 'pink' ? 'Ruido Rosa Voss-McCartney' : signalType === 'sweep' ? 'Barrido Senoidal Logarítmico (20 Hz → 20 kHz)' : 'No especificada'
 
-  const bands = [
-    { label: 'Sub-Graves', freq: '20–60 Hz',    avg: analysis.bandAverages.subBass  },
-    { label: 'Graves',     freq: '60–250 Hz',   avg: analysis.bandAverages.bass     },
-    { label: 'Medios-Bajos', freq: '250–500 Hz', avg: analysis.bandAverages.lowMids },
-    { label: 'Medios',     freq: '500–4000 Hz',  avg: analysis.bandAverages.mids    },
-    { label: 'Agudos',     freq: '4k–20 kHz',   avg: analysis.bandAverages.highs   },
+  const bandRows = [
+    { label: 'Sub-Graves', range: '20 – 60 Hz',    avg: analysis.bandAverages.subBass  },
+    { label: 'Graves',     range: '60 – 250 Hz',   avg: analysis.bandAverages.bass     },
+    { label: 'Medios-Bajos', range: '250 – 500 Hz', avg: analysis.bandAverages.lowMids },
+    { label: 'Medios',     range: '500 – 4.000 Hz', avg: analysis.bandAverages.mids    },
+    { label: 'Agudos',     range: '4.000 – 20.000 Hz', avg: analysis.bandAverages.highs },
   ]
 
-  const recRows = recommendations.map(rec => `
-  <tr style="border-bottom:1px solid #1e2330;">
-    <td style="padding:10px 14px;">
-      <span style="font-size:11px;font-weight:800;color:#f4f7fb;font-family:monospace;letter-spacing:.03em;">${bandLabel(rec.id)}</span>
-    </td>
-    <td style="padding:10px 14px;font-family:monospace;font-size:11px;color:#9ba6b2;">${rec.frequency} Hz</td>
-    <td style="padding:10px 14px;font-size:10px;color:#6e7782;max-width:220px;">${rec.reason}</td>
-    <td style="padding:10px 14px;min-width:180px;">${gainBar(rec.suggestedGain)}</td>
-  </tr>`).join('')
+  const issuesHTML = analysis.issues.map(issue => `
+    <tr>
+      <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;">
+        <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;${issueBadgeStyle(issue.type)}">${issueTypeLabel(issue.type)}</span>
+      </td>
+      <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-family:monospace;font-size:12px;color:#374151;">${issue.frequency} Hz</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-weight:600;color:#111827;font-size:13px;">${issue.message}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;max-width:240px;">${issue.description}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-family:monospace;font-size:12px;font-weight:700;color:${issue.deviation > 0 ? '#c2410c' : issue.deviation < 0 ? '#1d4ed8' : '#374151'};">${issue.deviation > 0 ? '+' : ''}${issue.deviation.toFixed(1)} dB</td>
+    </tr>`).join('')
 
-  const issueCards = analysis.issues.map(issue => `
-  <div style="display:flex;gap:12px;background:#0e1118;border:1px solid #1e2330;border-radius:12px;padding:12px 16px;margin-bottom:8px;">
-    <div style="font-size:16px;line-height:1;color:${issueColor(issue.type)};margin-top:2px;">${issueIcon(issue.type)}</div>
-    <div>
-      <div style="font-size:11.5px;font-weight:800;color:#f4f7fb;font-family:monospace;letter-spacing:.02em;margin-bottom:3px;">${issue.message}</div>
-      <div style="font-size:10px;color:#6e7782;line-height:1.5;">${issue.description}</div>
-      ${issue.deviation !== 0 ? `<div style="margin-top:4px;font-size:10px;font-family:monospace;color:${issueColor(issue.type)};">Desviación detectada: ${issue.deviation > 0 ? '+' : ''}${issue.deviation.toFixed(1)} dB a ${issue.frequency} Hz</div>` : ''}
-    </div>
-  </div>`).join('')
+  const recHTML = recommendations.map(rec => `
+    <tr>
+      <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-weight:700;color:#111827;font-size:13px;">${bandDisplayName(rec.id)}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-family:monospace;font-size:12px;color:#374151;">${rec.frequency} Hz</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;">${rec.reason}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-weight:700;font-family:monospace;color:${gainColor(rec.suggestedGain)};font-size:13px;">${gainLabel(rec.suggestedGain)}</td>
+    </tr>`).join('')
+
+  const currentBandsHTML = currentBands ? currentBands.map(b => `
+    <tr>
+      <td style="padding:8px 14px;border-bottom:1px solid #e5e7eb;font-weight:600;color:#374151;font-size:12px;">${bandDisplayName(b.id)}</td>
+      <td style="padding:8px 14px;border-bottom:1px solid #e5e7eb;font-family:monospace;font-size:12px;color:#374151;">${b.frequency} Hz</td>
+      <td style="padding:8px 14px;border-bottom:1px solid #e5e7eb;">${miniBar(b.gain)}</td>
+    </tr>`).join('') : ''
+
+  const advisorHTML = (advisorAccuracy !== undefined && advisorStatus) ? `
+    <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;gap:16px;">
+      <div style="text-align:center;min-width:60px;">
+        <div style="font-size:28px;font-weight:900;color:#15803d;font-family:monospace;">${advisorAccuracy}%</div>
+        <div style="font-size:10px;color:#166534;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Precisión</div>
+      </div>
+      <div>
+        <div style="font-size:14px;font-weight:800;color:#15803d;margin-bottom:4px;">Asesor Acústico: ${advisorStatus}</div>
+        <div style="font-size:12px;color:#166534;">Índice de Compensación Acústica al momento de generar el informe.</div>
+      </div>
+    </div>` : ''
 
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>FreqLens — Informe de Calibración · ${roomName}</title>
+<meta charset="UTF-8"/>
+<title>FreqLens — Informe de Sala: ${roomName}</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{background:#080a0f;color:#f4f7fb;font-family:'Inter',sans-serif;font-size:13px;line-height:1.6;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  @media print{body{background:#fff;color:#000;} .no-print{display:none;} .page-break{page-break-after:always;}}
+  body{background:#ffffff;color:#111827;font-family:'Inter',sans-serif;font-size:14px;line-height:1.6;}
+  table{border-collapse:collapse;width:100%;}
+  th{text-align:left;padding:10px 14px;background:#f9fafb;border-bottom:2px solid #e5e7eb;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;}
+  h2{font-size:15px;font-weight:800;color:#111827;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #f97316;display:flex;align-items:center;gap:8px;}
+  h2 span.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#f97316;}
+  .section{margin-bottom:32px;}
+  .card{background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:16px 20px;}
+  @media print{
+    @page{margin:18mm 16mm;size:A4;}
+    body{font-size:12px;}
+    .no-print{display:none!important;}
+    tr{page-break-inside:avoid;}
+  }
 </style>
 </head>
-<body>
+<body style="max-width:900px;margin:0 auto;padding:32px 28px;">
 
 <!-- PRINT BUTTON -->
-<div class="no-print" style="position:fixed;top:16px;right:16px;z-index:999;display:flex;gap:8px;">
-  <button onclick="window.print()" style="background:#ff8c00;color:#000;border:none;padding:10px 20px;border-radius:8px;font-family:monospace;font-weight:800;font-size:11px;letter-spacing:.08em;cursor:pointer;text-transform:uppercase;">⬇ Imprimir / Guardar PDF</button>
+<div class="no-print" style="position:fixed;top:12px;right:12px;z-index:999;">
+  <button onclick="window.print()" style="background:#f97316;color:#fff;border:none;padding:10px 22px;border-radius:8px;font-family:'Inter',sans-serif;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 2px 8px rgba(249,115,22,.35);">
+    🖨 Imprimir / Guardar PDF
+  </button>
 </div>
 
-<div style="max-width:860px;margin:0 auto;padding:40px 24px;">
-
-  <!-- HEADER -->
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px;padding-bottom:24px;border-bottom:1px solid #1e2330;">
-    <div style="display:flex;align-items:center;gap:14px;">
-      <!-- FreqLens SVG Logo -->
-      <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="22" cy="22" r="20" stroke="#ff8c00" stroke-width="2.5" fill="none"/>
-        <path d="M6 22 Q11 10 16 22 Q21 34 26 22 Q31 10 38 22" stroke="#ff8c00" stroke-width="2" fill="none" stroke-linecap="round"/>
-        <circle cx="22" cy="22" r="3" fill="#ff8c00"/>
-      </svg>
-      <div>
-        <div style="font-size:20px;font-weight:800;letter-spacing:-.01em;color:#f4f7fb;">FreqLens</div>
-        <div style="font-size:10px;color:#6e7782;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;margin-top:1px;">Informe de Calibración Acústica</div>
-      </div>
-    </div>
-    <div style="text-align:right;">
-      <div style="font-size:11px;color:#9ba6b2;font-family:'JetBrains Mono',monospace;">${dateStr}</div>
-      <div style="font-size:11px;color:#6e7782;font-family:'JetBrains Mono',monospace;">${timeStr}</div>
-      <div style="margin-top:6px;font-size:9px;color:#3d4451;font-family:monospace;letter-spacing:.05em;">v3.0 · DAM TFG 2026</div>
-    </div>
-  </div>
-
-  <!-- SALA INFO + RATING -->
-  <div style="display:grid;grid-template-columns:1fr auto;gap:20px;margin-bottom:32px;align-items:start;">
+<!-- HEADER -->
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:24px;border-bottom:2px solid #f97316;">
+  <div style="display:flex;align-items:center;gap:14px;">
+    <svg width="48" height="48" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="22" cy="22" r="20" stroke="#f97316" stroke-width="2.5" fill="none"/>
+      <path d="M6 22 Q11 10 16 22 Q21 34 26 22 Q31 10 38 22" stroke="#f97316" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <circle cx="22" cy="22" r="3" fill="#f97316"/>
+    </svg>
     <div>
-      <div style="font-size:10px;color:#6e7782;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Perfil de sala analizado</div>
-      <div style="font-size:22px;font-weight:800;color:#f4f7fb;letter-spacing:-.01em;margin-bottom:8px;">${roomName}</div>
-      ${roomNotes ? `<div style="font-size:11.5px;color:#9ba6b2;background:#0e1118;border:1px solid #1e2330;border-radius:8px;padding:10px 14px;font-style:italic;">"${roomNotes}"</div>` : ''}
-      <div style="margin-top:12px;font-size:10px;color:#6e7782;">
-        <span style="color:#9ba6b2;font-weight:600;">Señal de prueba:</span> ${signalLabel(signalType)}
-      </div>
-    </div>
-    <div style="background:#0e1118;border:1px solid #1e2330;border-radius:16px;padding:20px 28px;text-align:center;min-width:140px;">
-      <div style="font-size:9px;color:#6e7782;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;">Rating acústico</div>
-      <div style="font-size:26px;font-weight:900;color:${rc};font-family:'JetBrains Mono',monospace;letter-spacing:.02em;">${analysis.acousticRating}</div>
-      <div style="margin-top:8px;font-size:9px;color:#6e7782;font-family:monospace;">RMS promedio</div>
-      <div style="font-size:13px;font-weight:700;color:#f4f7fb;font-family:monospace;">${analysis.averageRMS.toFixed(1)} dBFS</div>
+      <div style="font-size:24px;font-weight:900;color:#111827;letter-spacing:-.02em;">FreqLens</div>
+      <div style="font-size:11px;color:#9ca3af;font-family:'JetBrains Mono',monospace;letter-spacing:.07em;text-transform:uppercase;">Informe Técnico de Calibración Acústica</div>
     </div>
   </div>
-
-  <!-- SECTION: RESPUESTA ESPECTRAL POR BANDAS -->
-  <div style="margin-bottom:32px;">
-    <div style="font-size:10px;color:#ff8c00;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
-      <span style="display:inline-block;width:20px;height:1px;background:#ff8c00;vertical-align:middle;"></span>
-      Respuesta espectral por bandas
-    </div>
-    <div style="background:#0d0f17;border:1px solid #1e2330;border-radius:14px;overflow:hidden;">
-      <table style="width:100%;border-collapse:collapse;">
-        <thead>
-          <tr style="border-bottom:1px solid #1e2330;">
-            <th style="padding:10px 12px;text-align:left;font-size:9px;color:#6e7782;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;font-weight:600;">Banda</th>
-            <th style="padding:10px 12px;text-align:left;font-size:9px;color:#6e7782;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;font-weight:600;">Rango</th>
-            <th style="padding:10px 12px;text-align:left;font-size:9px;color:#6e7782;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;font-weight:600;">Nivel relativo</th>
-            <th style="padding:10px 12px;text-align:right;font-size:9px;color:#6e7782;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;font-weight:600;">Promedio</th>
-          </tr>
-        </thead>
-        <tbody>${bands.map(bandRow).join('')}</tbody>
-      </table>
-    </div>
+  <div style="text-align:right;">
+    <div style="font-size:13px;font-weight:600;color:#374151;">${dateStr}</div>
+    <div style="font-size:12px;color:#9ca3af;font-family:'JetBrains Mono',monospace;">${timeStr}</div>
+    <div style="margin-top:4px;font-size:10px;color:#d1d5db;font-family:monospace;">v3.0 · DAM TFG 2026 · Ezel A. Duque Arias</div>
   </div>
-
-  <!-- SECTION: PROBLEMAS DETECTADOS -->
-  <div style="margin-bottom:32px;">
-    <div style="font-size:10px;color:#ff8c00;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
-      <span style="display:inline-block;width:20px;height:1px;background:#ff8c00;vertical-align:middle;"></span>
-      Problemas espectrales detectados (${analysis.issues.length})
-    </div>
-    ${issueCards}
-  </div>
-
-  <!-- SECTION: EQ RECOMENDADA -->
-  <div style="margin-bottom:32px;">
-    <div style="font-size:10px;color:#ff8c00;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
-      <span style="display:inline-block;width:20px;height:1px;background:#ff8c00;vertical-align:middle;"></span>
-      Curva correctiva EQ paramétrica sugerida (±4 dB)
-    </div>
-    <div style="background:#0d0f17;border:1px solid #1e2330;border-radius:14px;overflow:hidden;">
-      <table style="width:100%;border-collapse:collapse;">
-        <thead>
-          <tr style="border-bottom:1px solid #1e2330;">
-            <th style="padding:10px 14px;text-align:left;font-size:9px;color:#6e7782;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;font-weight:600;">Banda EQ</th>
-            <th style="padding:10px 14px;text-align:left;font-size:9px;color:#6e7782;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;font-weight:600;">Frecuencia</th>
-            <th style="padding:10px 14px;text-align:left;font-size:9px;color:#6e7782;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;font-weight:600;">Motivo técnico</th>
-            <th style="padding:10px 14px;text-align:left;font-size:9px;color:#6e7782;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;font-weight:600;">Ganancia sugerida</th>
-          </tr>
-        </thead>
-        <tbody>${recRows}</tbody>
-      </table>
-    </div>
-
-    <!-- EQ VISUAL BAR CHART -->
-    <div style="margin-top:16px;background:#0d0f17;border:1px solid #1e2330;border-radius:14px;padding:20px 24px;">
-      <div style="font-size:9px;color:#6e7782;font-family:monospace;letter-spacing:.08em;text-transform:uppercase;margin-bottom:16px;">Visualización de la curva correctiva</div>
-      <div style="display:flex;align-items:flex-end;gap:12px;height:80px;justify-content:center;">
-        ${recommendations.map(rec => {
-          const h = Math.abs(rec.suggestedGain) / 4 * 70
-          const color = rec.suggestedGain > 0 ? '#ff8c00' : rec.suggestedGain < 0 ? '#00d4ff' : '#333'
-          const isUp = rec.suggestedGain >= 0
-          return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;">
-            <div style="font-size:9px;color:${color};font-family:monospace;font-weight:700;">${rec.suggestedGain > 0 ? '+' : ''}${rec.suggestedGain.toFixed(1)}</div>
-            <div style="display:flex;flex-direction:column;align-items:center;justify-content:${isUp ? 'flex-end' : 'flex-start'};height:70px;width:100%;position:relative;">
-              <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:#1e2330;"></div>
-              <div style="width:100%;height:${h}px;background:${color};border-radius:3px;opacity:.85;${isUp ? 'margin-top:auto' : 'margin-bottom:auto'}"></div>
-            </div>
-            <div style="font-size:8px;color:#6e7782;font-family:monospace;text-align:center;line-height:1.3;">${rec.frequency >= 1000 ? (rec.frequency / 1000) + 'k' : rec.frequency} Hz</div>
-          </div>`
-        }).join('')}
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:8px;color:#3d4451;font-family:monospace;">
-        <span>-4 dB</span><span>0 dB</span><span>+4 dB</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- FOOTER -->
-  <div style="border-top:1px solid #1e2330;padding-top:20px;display:flex;justify-content:space-between;align-items:center;">
-    <div style="font-size:9.5px;color:#3d4451;font-family:'JetBrains Mono',monospace;">
-      FreqLens · Ezel Alexander Duque Arias · TFG DAM 2026
-    </div>
-    <div style="font-size:9px;color:#3d4451;font-family:monospace;">
-      Procesado íntegramente en el navegador · Sin backend · Web Audio API
-    </div>
-  </div>
-
 </div>
+
+<!-- SALA + RATING -->
+<div style="display:grid;grid-template-columns:1fr auto;gap:20px;margin-bottom:32px;align-items:start;">
+  <div>
+    <div style="font-size:11px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Perfil analizado</div>
+    <div style="font-size:26px;font-weight:900;color:#111827;letter-spacing:-.02em;margin-bottom:8px;">${roomName}</div>
+    ${roomNotes ? `<div style="font-size:13px;color:#6b7280;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px;font-style:italic;">"${roomNotes}"</div>` : ''}
+    <div style="margin-top:10px;font-size:12px;color:#6b7280;"><strong style="color:#374151;">Señal de prueba:</strong> ${signalLabel}</div>
+  </div>
+  <div style="background:${rbg};border:2px solid ${rc};border-radius:12px;padding:20px 28px;text-align:center;min-width:140px;">
+    <div style="font-size:11px;color:${rc};font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Rating acústico</div>
+    <div style="font-size:28px;font-weight:900;color:${rc};font-family:'JetBrains Mono',monospace;">${analysis.acousticRating}</div>
+    <div style="margin-top:8px;font-size:11px;color:${rc};opacity:.75;">RMS promedio</div>
+    <div style="font-size:15px;font-weight:700;color:${rc};font-family:monospace;">${analysis.averageRMS.toFixed(1)} dBFS</div>
+  </div>
+</div>
+
+${advisorHTML}
+
+<!-- SECCIÓN 1: BANDAS -->
+<div class="section">
+  <h2><span class="dot"></span> Respuesta espectral por bandas</h2>
+  <table>
+    <thead><tr>
+      <th>Banda</th><th>Rango frecuencial</th><th>Nivel promedio (dBFS)</th><th>Evaluación</th>
+    </tr></thead>
+    <tbody>
+      ${bandRows.map(b => {
+        const level = b.avg > -40 ? 'Alto' : b.avg > -55 ? 'Medio' : 'Bajo'
+        const lvlColor = b.avg > -40 ? '#c2410c' : b.avg > -55 ? '#b45309' : '#374151'
+        return `<tr>
+          <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-weight:700;color:#111827;">${b.label}</td>
+          <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-family:monospace;color:#374151;">${b.range}</td>
+          <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-family:monospace;font-weight:700;color:#374151;">${b.avg.toFixed(1)} dBFS</td>
+          <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-weight:600;color:${lvlColor};">${level}</td>
+        </tr>`
+      }).join('')}
+    </tbody>
+  </table>
+</div>
+
+<!-- SECCIÓN 2: PROBLEMAS -->
+<div class="section">
+  <h2><span class="dot"></span> Problemas espectrales detectados</h2>
+  <table>
+    <thead><tr><th>Tipo</th><th>Frecuencia</th><th>Diagnóstico</th><th>Descripción técnica</th><th>Desviación</th></tr></thead>
+    <tbody>${issuesHTML}</tbody>
+  </table>
+</div>
+
+<!-- SECCIÓN 3: EQ SUGERIDA -->
+<div class="section">
+  <h2><span class="dot"></span> Curva correctiva EQ paramétrica sugerida (±4 dB)</h2>
+  <table>
+    <thead><tr><th>Banda EQ</th><th>Frecuencia central</th><th>Motivo técnico</th><th>Ganancia sugerida</th></tr></thead>
+    <tbody>${recHTML}</tbody>
+  </table>
+
+  <!-- EQ Bar visual -->
+  <div class="card" style="margin-top:16px;">
+    <div style="font-size:11px;color:#9ca3af;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px;">Visualización de la curva correctiva</div>
+    <div style="display:flex;align-items:flex-end;gap:10px;height:90px;justify-content:center;padding:0 8px;">
+      ${recommendations.map(rec => {
+        const h = Math.abs(rec.suggestedGain) / 4 * 70
+        const color = rec.suggestedGain > 0.5 ? '#ea580c' : rec.suggestedGain < -0.5 ? '#2563eb' : '#9ca3af'
+        const isUp = rec.suggestedGain >= 0
+        const freqLabel = rec.frequency >= 1000 ? `${rec.frequency/1000}k` : `${rec.frequency}`
+        return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;">
+          <div style="font-size:10px;color:${color};font-family:monospace;font-weight:700;">${gainLabel(rec.suggestedGain)}</div>
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:${isUp ? 'flex-end' : 'flex-start'};height:70px;width:100%;position:relative;">
+            <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:#d1d5db;"></div>
+            ${h > 0 ? `<div style="width:80%;height:${h}px;background:${color};border-radius:3px;opacity:.8;${isUp ? 'margin-top:auto' : 'margin-bottom:auto'}"></div>` : '<div style="width:2px;height:4px;background:#9ca3af;margin:auto;"></div>'}
+          </div>
+          <div style="font-size:10px;color:#6b7280;font-family:monospace;text-align:center;">${freqLabel} Hz</div>
+        </div>`
+      }).join('')}
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:10px;color:#9ca3af;font-family:monospace;padding:0 8px;">
+      <span>-4 dB</span><span style="font-weight:700;color:#374151;">0 dB</span><span>+4 dB</span>
+    </div>
+  </div>
+</div>
+
+<!-- SECCIÓN 4: EQ ACTUAL (si hay datos) -->
+${currentBandsHTML ? `
+<div class="section">
+  <h2><span class="dot"></span> Estado actual de los filtros DSP</h2>
+  <div style="font-size:12px;color:#6b7280;margin-bottom:12px;">Valores de ganancia aplicados en los BiquadFilterNodes al momento de generar el informe.</div>
+  <table>
+    <thead><tr><th>Banda</th><th>Frecuencia</th><th>Ganancia aplicada</th></tr></thead>
+    <tbody>${currentBandsHTML}</tbody>
+  </table>
+</div>` : ''}
+
+<!-- FOOTER -->
+<div style="border-top:1px solid #e5e7eb;padding-top:16px;margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
+  <div style="font-size:11px;color:#9ca3af;font-family:'JetBrains Mono',monospace;">FreqLens · Ezel Alexander Duque Arias · TFG DAM 2026</div>
+  <div style="font-size:10px;color:#d1d5db;font-family:monospace;">Procesado en el navegador · Web Audio API · Sin backend</div>
+</div>
+
 </body>
 </html>`
 }
 
-export function downloadReport(data: ReportData): void {
-  const html = generateRoomReport(data)
+export function downloadRoomReport(data: ReportData): void {
+  const html = generateRoomReportHTML(data)
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  const safeName = data.roomName.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_').toLowerCase()
-  a.download = `FreqLens_Informe_${safeName}_${Date.now()}.html`
+  const safe = data.roomName.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').toLowerCase()
+  a.download = `FreqLens_Informe_${safe}.html`
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
