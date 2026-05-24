@@ -47,7 +47,7 @@ export const EQCalibration = ({ onNavigateToEQ }: EQCalibrationProps) => {
       const p = Math.min(100, (elapsed / duration) * 100)
       setProgress(p)
       if (p >= 100) clearInterval(progressInterval)
-    }, 100)
+    }, 200)
 
     try {
       const response = signal === 'sweep' 
@@ -413,9 +413,15 @@ export const EQCalibration = ({ onNavigateToEQ }: EQCalibrationProps) => {
                 >
                   <RefreshCw className="w-3.5 h-3.5" /> Repetir Medición
                 </button>
-                <button 
-                  className="w-2/3 bg-accent hover:bg-accent/90 text-black font-extrabold px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all uppercase tracking-wider text-[9.5px] cursor-pointer shadow-[0_0_12px_rgba(255,140,0,0.2)]"
-                  onClick={handleApplyAndSave} 
+                <button
+                  className="w-1/3 bg-gray-600 hover:bg-gray-700 text-white font-extrabold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all uppercase tracking-wider text-[10.5px] cursor-pointer shadow-[0_0_12px_rgba(0,0,0,0.2)]"
+                  onClick={onNavigateToEQ}
+                >
+                  <span className="text-[9px]">← Inicio</span>
+                </button>
+                <button
+                  className="w-1/3 bg-white hover:bg-white/90 text-black font-extrabold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all uppercase tracking-wider text-[10.5px] cursor-pointer shadow-[0_0_12px_rgba(255,140,0,0.2)]"
+                  onClick={handleApplyAndSave}
                 >
                   <ShieldCheck className="w-3.5 h-3.5" /> APLICAR CURVA Y GUARDAR SALA
                 </button>

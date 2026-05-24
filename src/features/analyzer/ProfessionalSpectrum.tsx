@@ -10,22 +10,27 @@ interface SpectrumProps {
 }
 
 function renderSpectrum(
-  ctx: CanvasRenderingContext2D, 
-  data: Float32Array, 
-  width: number, 
+  ctx: CanvasRenderingContext2D,
+  data: Float32Array,
+  width: number,
   height: number,
   theme: any,
   isLight: boolean
 ) {
   ctx.clearRect(0, 0, width, height)
-  
+
   drawGrid(ctx, width, height, isLight)
 
   const accentColor = theme.primary || '#ff8c00'
 
+  // Gradient for the line
+  const gradient = ctx.createLinearGradient(0, 0, width, 0)
+  gradient.addColorStop(0, accentColor)
+  gradient.addColorStop(1, accentColor + '80') // semi-transparent end
+
   ctx.beginPath()
-  ctx.strokeStyle = accentColor
-  ctx.lineWidth = 2
+  ctx.strokeStyle = gradient
+  ctx.lineWidth = 3 // thicker line for premium look
   ctx.lineJoin = 'round'
 
   const minFreq = 20
@@ -57,8 +62,8 @@ function renderSpectrum(
     ctx.lineTo(width, height)
     ctx.lineTo(0, height)
     const fillGrad = ctx.createLinearGradient(0, 0, 0, height)
-    fillGrad.addColorStop(0, 'rgba(255, 140, 0, 0.08)')
-    fillGrad.addColorStop(1, 'rgba(255, 140, 0, 0.0)')
+    fillGrad.addColorStop(0, 'rgba(255, 140, 0, 0.12)')
+    fillGrad.addColorStop(1, 'rgba(255, 140, 0, 0)')
     ctx.fillStyle = fillGrad
     ctx.fill()
   }

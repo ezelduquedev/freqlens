@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import tfgDocsData from '../../docs/content/tfg_docs.json';
 import { DocumentationSidebar } from './DocumentationSidebar';
-import { GlassPanel } from '../../ui/GlassPanel';
-import { FileText, Download, Search, Info, List } from 'lucide-react';
+import { FileText, Download, Search, List } from 'lucide-react';
 
 interface Subsection {
   id: string;
@@ -242,16 +241,6 @@ export default function DocumentationPage() {
                 })}
               </div>
 
-              {/* Informative Academic Box */}
-              <GlassPanel className="mt-auto !p-2 border-white/5 flex flex-col gap-1 select-none">
-                <div className="flex items-center gap-1 text-[7.5px] font-black text-accent uppercase tracking-wider">
-                  <Info className="w-3 h-3 animate-pulse" />
-                  <span>Tribunal TFG</span>
-                </div>
-                <p className="text-[6.5px] text-text-soft leading-normal uppercase">
-                  Código fuente evaluado y compilado bajo estándares de grado de ingeniería informática.
-                </p>
-              </GlassPanel>
             </div>
           )}
 

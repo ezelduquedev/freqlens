@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react'
 import {
   Activity,
   ArrowRight,
-  ShieldCheck,
   Cpu,
   Lock,
   Play,
@@ -16,10 +15,9 @@ interface LandingPageProps {
   onStart: () => void;
   onDocs: () => void;
   error: string | null;
-  theme?: 'dark' | 'light'
 }
 
-export function LandingPage({ onStart, onDocs, error, theme = 'dark' }: LandingPageProps) {
+export function LandingPage({ onStart, onDocs, error }: LandingPageProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animRef = useRef<number>(0)
   const dataRef = useRef<number[]>([])
@@ -116,8 +114,8 @@ export function LandingPage({ onStart, onDocs, error, theme = 'dark' }: LandingP
             <div className="w-8 h-8 flex items-center justify-center animate-pulse drop-shadow-[0_0_10px_var(--accent-glow)] select-none">
               <svg viewBox="0 0 100 100" className="w-full h-full">
                 <circle cx="50" cy="50" r="40" stroke="var(--accent)" strokeWidth="6" fill="none" />
-                <path d="M 22 62 Q 35 62 42 45 Q 50 25 58 45 Q 65 62 78 62" stroke={theme === 'dark' ? 'white' : 'var(--text)'} strokeWidth="4" fill="none" strokeLinecap="round" />
-                <circle cx="50" cy="48" r="5" fill={theme === 'dark' ? 'white' : 'var(--text)'} />
+                <path d="M 22 62 Q 35 62 42 45 Q 50 25 58 45 Q 65 62 78 62" stroke="var(--text)" strokeWidth="4" fill="none" strokeLinecap="round" />
+                <circle cx="50" cy="48" r="5" fill="var(--text)" />
               </svg>
             </div>
             <span className="text-base font-black tracking-widest text-accent font-mono">
@@ -146,9 +144,9 @@ export function LandingPage({ onStart, onDocs, error, theme = 'dark' }: LandingP
           </div>
 
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
-            Análisis de audio de{' '}
+            Análisis de audio{' '}
             <span className="bg-gradient-to-r from-accent to-[#ffaa33] bg-clip-text text-transparent">
-              precisión absoluta
+              en tiempo real
             </span>
           </h1>
 
@@ -318,12 +316,11 @@ export function LandingPage({ onStart, onDocs, error, theme = 'dark' }: LandingP
           </div>
         </section>
 
+
         {/* CTA section */}
         <section className="fade-up" style={{ animationDelay: '0.3s' }}>
           <GlassPanel className="p-10 md:p-12 text-center relative overflow-hidden border-white/10" hoverEffect strong>
-            <div className="absolute top-[-50px] right-[-50px] opacity-[0.02] pointer-events-none select-none text-[160px] font-black font-mono">
-              PRO
-            </div>
+
             <h2 className="text-2xl md:text-3xl font-extrabold text-white mb-3">
               ¿Listo para la precisión absoluta?
             </h2>
@@ -339,30 +336,10 @@ export function LandingPage({ onStart, onDocs, error, theme = 'dark' }: LandingP
 
       {/* Footer */}
       <footer className="w-full py-8 border-t border-white/5 bg-black/20 select-none mt-auto z-10">
-        <div className="max-w-[1200px] mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex flex-col items-center md:items-start gap-1">
-            <span className="font-extrabold text-white text-xs tracking-wider">FreqLens Lab.</span>
-            <span className="mono text-[10px] text-text-muted">
-              © 2026 FreqLens — Trabajo Fin de Grado DAM
-            </span>
-          </div>
-          <div className="flex gap-6">
-            {[['Documentación', 'Documentation'], ['API del Motor', 'Engine API'], ['Privacidad', 'Privacy'], ['Soporte', 'Support']].map(([label, l]) => (
-              label === 'Documentación' ? (
-                <a key={l} className="mono text-[10px] text-text-muted hover:text-accent cursor-pointer transition-colors" onClick={onDocs}>
-                  {label}
-                </a>
-              ) : (
-                <a key={l} className="mono text-[10px] text-text-muted hover:text-accent cursor-pointer transition-colors">
-                  {label}
-                </a>
-              )
-            ))}
-          </div>
-          <div className="flex items-center gap-3 text-text-muted">
-            <Terminal className="w-4 h-4 cursor-pointer hover:text-accent transition-colors" />
-            <ShieldCheck className="w-4 h-4 cursor-pointer hover:text-accent transition-colors" />
-          </div>
+        <div className="max-w-[1200px] mx-auto px-6 flex justify-center">
+          <a className="mono text-[10px] text-text-muted hover:text-accent cursor-pointer transition-colors" onClick={onDocs}>
+            Documentación
+          </a>
         </div>
       </footer>
     </div>

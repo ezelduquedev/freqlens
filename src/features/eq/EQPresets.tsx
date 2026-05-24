@@ -3,6 +3,7 @@ import { Sliders, RefreshCw, Check, Pencil } from 'lucide-react';
 import { AdaptiveEQManager } from '../../core/audio/AdaptiveEQManager';
 import { RoomProfileStorage, type RoomProfile } from '../../core/audio/RoomProfileStorage';
 import { PresetStorage, type Preset } from './PresetStorage';
+import { emitEQUpdate } from '../../core/audio/EQEventBus';
 
 const PRESETS: Preset[] = [
   {
@@ -292,6 +293,7 @@ export const EQPresets = ({ onPresetApply, variant = 'full' }: EQPresetsProps) =
     });
     setSelectedId(preset.id);
     onPresetApply();
+    emitEQUpdate();
   };
 
   const applyProfile = (profile: RoomProfile) => {
@@ -305,6 +307,7 @@ export const EQPresets = ({ onPresetApply, variant = 'full' }: EQPresetsProps) =
     });
     setSelectedId(profile.id);
     onPresetApply();
+    emitEQUpdate();
   };
 
   // Helper to draw a tiny SVG thumbnail path for calibrated EQ profiles
@@ -348,7 +351,7 @@ export const EQPresets = ({ onPresetApply, variant = 'full' }: EQPresetsProps) =
                 <button
                   key={preset.id}
                   onClick={() => applyPreset(preset)}
-                  className={`p-3.5 rounded-3xl text-left border cursor-pointer hover:bg-white/[0.02] flex flex-col justify-between transition-all duration-200 bg-white dark:bg-surface shadow-[0_8px_30px_rgba(0,0,0,0.03)] dark:shadow-none ${
+                  className={`p-2.5 rounded-3xl text-left border cursor-pointer hover:bg-white/[0.02] flex flex-col justify-between transition-all duration-200 bg-white dark:bg-bg-elevated shadow-[0_8px_30px_rgba(0,0,0,0.03)] dark:shadow-none ${
                     isActive 
                       ? 'border-accent/40 bg-accent/[0.01] shadow-[0_8px_30px_rgba(255,140,0,0.08)]' 
                       : 'border-black/5 dark:border-white/5 hover:border-accent/20'
@@ -432,7 +435,7 @@ export const EQPresets = ({ onPresetApply, variant = 'full' }: EQPresetsProps) =
                 <div
                   key={prof.id}
                   onClick={() => applyProfile(prof)}
-                  className={`p-4 rounded-3xl border text-left cursor-pointer transition-all duration-200 flex flex-col bg-white dark:bg-surface shadow-[0_8px_30px_rgba(0,0,0,0.03)] dark:shadow-none ${
+                  className={`p-4 rounded-3xl border text-left cursor-pointer transition-all duration-200 flex flex-col bg-white dark:bg-bg-elevated shadow-[0_8px_30px_rgba(0,0,0,0.03)] dark:shadow-none ${
                     isActive 
                       ? 'border-accent/40 bg-accent/[0.01] shadow-[0_8px_30px_rgba(255,140,0,0.08)]' 
                       : 'border-black/5 dark:border-white/5 hover:border-accent/20'

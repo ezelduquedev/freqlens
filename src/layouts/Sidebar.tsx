@@ -5,9 +5,7 @@ import {
   Music,
   Sliders,
   Power,
-  BookOpen,
-  Sun,
-  Moon
+  BookOpen
 } from 'lucide-react'
 
 export type TabId = 'analyzer' | 'calibrate' | 'tuner' | 'eq' | 'docs'
@@ -17,18 +15,15 @@ interface SidebarProps {
   setActiveTab: (tab: TabId) => void
   engineRunning: boolean
   toggleEngine: () => void
-  theme: 'dark' | 'light'
-  toggleTheme: () => void
 }
 
 export function Sidebar({
   activeTab,
   setActiveTab,
   engineRunning,
-  toggleEngine,
-  theme,
-  toggleTheme
+  toggleEngine
 }: SidebarProps) {
+
   const menuItems = [
     { id: 'analyzer', label: 'CONSOLA', icon: LayoutDashboard },
     { id: 'calibrate', label: 'CALIBRAR', icon: Mic },
@@ -44,8 +39,8 @@ export function Sidebar({
         <div className="w-10 h-10 flex items-center justify-center animate-pulse drop-shadow-[0_0_10px_var(--accent-glow)] select-none">
           <svg viewBox="0 0 100 100" className="w-full h-full">
             <circle cx="50" cy="50" r="40" stroke="var(--accent)" strokeWidth="6" fill="none" />
-            <path d="M 22 62 Q 35 62 42 45 Q 50 25 58 45 Q 65 62 78 62" stroke={theme === 'dark' ? 'white' : 'var(--text)'} strokeWidth="4" fill="none" strokeLinecap="round" />
-            <circle cx="50" cy="48" r="5" fill={theme === 'dark' ? 'white' : 'var(--text)'} />
+            <path d="M 22 62 Q 35 62 42 45 Q 50 25 58 45 Q 65 62 78 62" stroke="var(--text)" strokeWidth="4" fill="none" strokeLinecap="round" />
+            <circle cx="50" cy="48" r="5" fill="var(--text)" />
           </svg>
         </div>
         <span className="mono text-[8px] uppercase tracking-widest text-text-muted mt-2 font-black">
@@ -93,20 +88,7 @@ export function Sidebar({
       <div className="flex flex-col items-center gap-5 w-full">
         {/* Theme Toggle Button */}
         <div className="flex flex-col items-center gap-1.5 select-none">
-          <button
-            onClick={toggleTheme}
-            title={theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
-            className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 border bg-white/[0.03] border-white/5 text-text-soft hover:bg-white/[0.08] hover:text-text active:scale-90"
-          >
-            {theme === 'dark' ? (
-              <Sun className="w-4 h-4 text-yellow-500 animate-spin-slow" />
-            ) : (
-              <Moon className="w-4 h-4 text-blue-500" />
-            )}
-          </button>
-          <span className="mono text-[7px] uppercase tracking-widest text-text-muted font-bold leading-none">
-            {theme === 'dark' ? 'OSCURO' : 'CLARO'}
-          </span>
+
         </div>
 
         {/* Engine Power Button */}

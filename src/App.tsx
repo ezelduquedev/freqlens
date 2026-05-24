@@ -5,6 +5,7 @@ import { ProfessionalTuner } from './features/tuner/ProfessionalTuner'
 import { EQVisualizer } from './features/eq/EQVisualizer'
 import { EQPresets } from './features/eq/EQPresets'
 import { EQCalibration } from './features/calibrate/EQCalibration'
+import { initTheme } from './utils/theme'
 
 // New modular layouts & features
 import { AppShell } from './layouts/AppShell'
@@ -24,19 +25,11 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [eqUpdateKey, setEqUpdateKey] = useState(0)
   const [engineRunning, setEngineRunning] = useState(false)
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    return (localStorage.getItem('freqLens-theme') as 'dark' | 'light') || 'dark'
-  })
 
-  // Sincronizar el atributo data-theme y persistir en localStorage
+  // Initialize theme on mount
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-    localStorage.setItem('freqLens-theme', theme)
-  }, [theme])
-
-  const toggleTheme = () => {
-    setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
-  }
+    initTheme()
+  }, [])
 
   // Listen to engine state changes from AudioManager
   useEffect(() => {
@@ -95,7 +88,7 @@ function App() {
 
   // Render Landing stage
   if (page === 'landing') {
-    return <LandingPage onStart={handleStart} onDocs={() => { setPage('app'); setActiveTab('docs'); }} error={error} theme={theme} />
+    return <LandingPage onStart={handleStart} onDocs={() => { setPage('app'); setActiveTab('docs'); }} error={error} />
   }
 
   return (
@@ -104,8 +97,6 @@ function App() {
       setActiveTab={setActiveTab}
       engineRunning={engineRunning}
       toggleEngine={handleToggleEngine}
-      theme={theme}
-      toggleTheme={toggleTheme}
     >
       {/* ── Tabs Router ── */}
       {activeTab === 'analyzer' && (
@@ -142,21 +133,21 @@ function App() {
 
               <div className="grid grid-cols-1 gap-3.5 mt-1">
                 {/* DSP Algorithm */}
-                <div className="bg-white dark:bg-black/35 border border-black/5 dark:border-white/[0.03] p-3 rounded-2xl">
+                <div className="bg-white bg-black/35 border border-black/5 border-white/[0.03] p-3 rounded-2xl">
                   <span className="text-[7px] text-text-soft uppercase tracking-wider block font-bold">ALGORITMO DSP</span>
-                  <span className="text-[14px] text-text-main dark:text-white font-extrabold block mt-1">YIN Autocorrelation</span>
+                  <span className="text-[14px] text-text-main text-white font-extrabold block mt-1">YIN Autocorrelation</span>
                   <span className="text-[7.5px] text-text-muted uppercase tracking-widest block mt-1 font-bold">MULTI-HILO A 60FPS</span>
                 </div>
 
                 {/* Input Range */}
-                <div className="bg-white dark:bg-black/35 border border-black/5 dark:border-white/[0.03] p-3 rounded-2xl">
+                <div className="bg-white bg-black/35 border border-black/5 border-white/[0.03] p-3 rounded-2xl">
                   <span className="text-[7px] text-text-soft uppercase tracking-wider block font-bold">RANGO DE ENTRADA</span>
-                  <span className="text-[14px] text-text-main dark:text-white font-extrabold block mt-1">20Hz - 2.5kHz</span>
+                  <span className="text-[14px] text-text-main text-white font-extrabold block mt-1">20Hz - 2.5kHz</span>
                   <span className="text-[7.5px] text-text-muted uppercase tracking-widest block mt-1 font-bold">MIC / LÍNEA</span>
                 </div>
 
                 {/* Precision */}
-                <div className="bg-white dark:bg-black/35 border border-black/5 dark:border-white/[0.03] p-3 rounded-2xl">
+                <div className="bg-white bg-black/35 border border-black/5 border-white/[0.03] p-3 rounded-2xl">
                   <span className="text-[7px] text-text-soft uppercase tracking-wider block font-bold">PRECISIÓN TEÓRICA</span>
                   <span className="text-[14px] text-accent font-extrabold block mt-1">&lt; 1 Cents</span>
                   <span className="text-[7.5px] text-text-muted uppercase tracking-widest block mt-1 font-bold">CALIDAD DE ESTUDIO</span>

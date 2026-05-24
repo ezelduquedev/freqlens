@@ -44,7 +44,16 @@ function SpectrumAnalyzer({ analyser, audioContext }: { analyser: AnalyserNode, 
     return () => window.removeEventListener('resize', resizeCanvas);
   }, [resizeCanvas]);
 
+  // Limit drawing to a target FPS to reduce CPU load
+  const MAX_FPS = 30;
+  const frameInterval = 1000 / MAX_FPS;
+  const lastDrawTime = useRef<number>(0);
+
   const draw = useCallback(() => {
+    const now = performance.now();
+    if (now - lastDrawTime.current < frameInterval) return; // skip frame
+    lastDrawTime.current = now;
+
     const canvas = canvasRef.current;
     if (!canvas || !analyser) return;
     const ctx = canvas.getContext('2d');
@@ -81,6 +90,7 @@ function SpectrumAnalyzer({ analyser, audioContext }: { analyser: AnalyserNode, 
     rmsRef.current = 20 * Math.log10(calcRMS(timeData) + 1e-10);
   }, [analyser, audioContext]);
 
+  // Use animation frame but respect target FPS
   useAnimationFrame(draw, true);
 
   return (

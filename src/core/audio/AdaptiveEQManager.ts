@@ -118,18 +118,22 @@ export class AdaptiveEQManager {
 
   public setBandGain(id: string, gain: number) {
     const band = this.bands.find(b => b.id === id)
-    if (band && band.node) {
+    if (band) {
       // Clamping gain to prevent UI bolita overflowing (safeguard)
       const clampedGain = Math.max(-12, Math.min(12, gain));
-      band.node.gain.setTargetAtTime(clampedGain, 0, 0.05)
+      if (band.node) {
+        band.node.gain.setTargetAtTime(clampedGain, 0, 0.05)
+      }
       band.gain = clampedGain
     }
   }
 
   public setBandFrequency(id: string, frequency: number) {
     const band = this.bands.find(b => b.id === id)
-    if (band && band.node) {
-      band.node.frequency.setTargetAtTime(frequency, 0, 0.05)
+    if (band) {
+      if (band.node) {
+        band.node.frequency.setTargetAtTime(frequency, 0, 0.05)
+      }
       band.frequency = frequency
     }
   }

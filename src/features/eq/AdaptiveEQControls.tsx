@@ -4,6 +4,7 @@ import { AdaptiveEQManager, type EQBand } from '../../core/audio/AdaptiveEQManag
 import { Sliders } from 'lucide-react'
 import { GlassPanel } from '../../ui/GlassPanel'
 import { RoomProfileStorage, type RoomProfile } from '../../core/audio/RoomProfileStorage'
+import { onEQUpdate } from '../../core/audio/EQEventBus'
 
 export const AdaptiveEQControls = ({ onUpdate }: { onUpdate?: () => void }) => {
   const [bands, setBands] = useState<EQBand[]>([])
@@ -22,6 +23,13 @@ export const AdaptiveEQControls = ({ onUpdate }: { onUpdate?: () => void }) => {
   useEffect(() => {
     loadProfile()
     setBands([...eqManager.getBands()])
+
+    const unsubscribe = onEQUpdate(() => {
+      setBands([...eqManager.getBands()])
+      loadProfile()
+      if (onUpdate) onUpdate()
+    })
+    return () => unsubscribe()
   }, [onUpdate])
 
   const handleGainChange = (id: string, gain: number) => {
@@ -92,7 +100,6 @@ export const AdaptiveEQControls = ({ onUpdate }: { onUpdate?: () => void }) => {
 
           // Calculate recommended target position from active calibrated room profile
           const targetGain = activeProfile ? (activeProfile.eqValues[band.id] ?? 0) : 0
-          const targetPercent = ((targetGain + 12) / 24) * 100
 
           return (
             <div key={band.id} className="flex flex-col items-center gap-4 select-none">
@@ -102,19 +109,9 @@ export const AdaptiveEQControls = ({ onUpdate }: { onUpdate?: () => void }) => {
                 {/* Center 0dB indicator tick */}
                 <div className="absolute left-[-4px] right-[-4px] h-0.5 bg-black/20 dark:bg-white/20 z-0" style={{ top: '50%' }} />
 
-                {/* RECOMMENDED TARGET INDICATOR (Ghost Ring) */}
-                {activeProfile && (
-                  <div 
-                    className="absolute w-3.5 h-3.5 rounded-full border border-dashed border-accent bg-accent/10 shadow-[0_0_8px_rgba(255,140,0,0.3)] z-5 pointer-events-none transition-all duration-300"
-                    style={{ 
-                      bottom: `calc(${targetPercent}% - 7px)` // Center the 14px target ghost ring
-                    }}
-                    title={`Objetivo de calibración: ${targetGain > 0 ? '+' : ''}${targetGain.toFixed(1)} dB`}
-                  />
-                )}
-
                 {/* Custom glowing orange ring knob with dark inset border and center orange dot */}
                 <div 
+
                   className="absolute w-4 h-4 rounded-full border-[3px] border-black/90 bg-accent shadow-[0_0_0_1.5px_#ff8c00,0_0_10px_rgba(255,140,0,0.8)] z-10 pointer-events-none transition-all duration-75"
                   style={{ 
                     bottom: `calc(${percent}% - 8px)` // Center the 16px knob (8px offset)

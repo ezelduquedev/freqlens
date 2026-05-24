@@ -10,14 +10,14 @@ export interface SuggestedBand {
 export class EQRecommendationEngine {
   /**
    * Genera recomendaciones de ganancia de EQ basadas en la respuesta de frecuencia medida.
-   * La corrección es suave y limitada rígidamente a ±6 dB para garantizar la estabilidad acústica.
+   * La corrección es suave y limitada rígidamente a ±4 dB para garantizar la estabilidad acústica.
    */
   public static calculate(measuredResponse: number[], frequencies: number[]): SuggestedBand[] {
     const cleanResponse = measuredResponse.map(v => (v === -Infinity || isNaN(v)) ? -100 : v);
     
-    // Nivel base promedio de la sala
+    // Compute a simple average baseline (mean) for the room response
     const totalSum = cleanResponse.reduce((a, b) => a + b, 0);
-    const baseline = cleanResponse.length > 0 ? (totalSum / cleanResponse.length) : -45;
+    const baseline = cleanResponse.length > 0 ? totalSum / cleanResponse.length : -45;
 
     // Frecuencias fijas de las bandas de FreqLens
     const targetBands = [
@@ -44,8 +44,8 @@ export class EQRecommendationEngine {
       let reason = band.defaultReason;
 
       if (band.id !== 'hpf') {
-        // Limitar la corrección rigurosamente a un máximo de ±6 dB
-        suggestedGain = Math.max(-6.0, Math.min(6.0, correction));
+        // Limitar la corrección rigurosamente a un máximo de ±4 dB
+        suggestedGain = Math.max(-4.0, Math.min(4.0, correction));
         
         // Suavizar las ganancias (redondear a un decimal)
         suggestedGain = Math.round(suggestedGain * 10) / 10;
