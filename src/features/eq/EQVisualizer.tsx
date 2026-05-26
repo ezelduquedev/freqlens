@@ -60,7 +60,6 @@ const calculateCombinedResponse = (freq: number, bands: EQBand[]) => {
 
 const calculateRawRoomResponse = (freq: number, profile: RoomProfile | null) => {
   if (!profile) return 0
-  
   let deviation = 0
   Object.entries(profile.eqValues).forEach(([bandId, idealCorrection]) => {
     let bandFreq = 1000
@@ -69,16 +68,13 @@ const calculateRawRoomResponse = (freq: number, profile: RoomProfile | null) => 
     else if (bandId === 'mid-1') bandFreq = 500
     else if (bandId === 'mid-2') bandFreq = 2000
     else if (bandId === 'high-shelf') bandFreq = 8000
-    
     const f = freq / bandFreq
     const q = 0.8
     const bandwidth = 1 / q
     const dist = Math.abs(Math.log2(f))
-    
     const rawDev = -idealCorrection
     deviation += rawDev * Math.exp(-(dist * dist) / (bandwidth * bandwidth))
   })
-  
   const ripple = Math.sin(Math.log10(freq) * 20) * 0.35
   return deviation + ripple
 }
@@ -94,19 +90,15 @@ const getAcousticAdvisorFeedback = (bands: EQBand[], profile: RoomProfile | null
       message: 'SALA TOTALMENTE NEUTRA O MONITOREO DIRECTO ACTIVO. LA CURVA DE ECUALIZACIÓN ACTUAL NO REQUIERE COMPENSACIÓN FÍSICA.'
     }
   }
-
   let totalDifference = 0
   let bandCount = 0
-  
   bands.forEach(band => {
     const idealGain = profile.eqValues[band.id] ?? 0
     totalDifference += Math.abs(band.gain - idealGain)
     bandCount++
   })
-
   const averageDiff = bandCount > 0 ? (totalDifference / bandCount) : 0
   const accuracy = Math.max(0, Math.min(100, Math.round(100 - (averageDiff / 5) * 100)))
-  
   if (accuracy >= 85) {
     return {
       accuracy,
@@ -140,7 +132,7 @@ const getAcousticAdvisorFeedback = (bands: EQBand[], profile: RoomProfile | null
       status: 'DESFAVORABLE',
       color: 'text-danger border-danger/30 bg-danger/5',
       accentColor: '#ff453a',
-      title: '¡CUIDADO! AMPLIFICANDO DECTECTADAS',
+      title: '¡CUIDADO! AMPLIFICANDO RESONANCIAS',
       message: 'LA EQ ESTÁ EXACERBANDO LAS RESONANCIAS DE TU SALA EN LUGAR DE CORREGIRLAS. RIESGO ALTO DE MONITOREO ENGAÑOSO Y PÉRDIDA DE DETALLE.'
     }
   }
@@ -162,37 +154,28 @@ export const EQVisualizer = () => {
 
   useEffect(() => {
     setBands([...eqManager.getBands()])
-    
     const canvas = canvasRef.current
     if (!canvas) return
-
     const resizeObserver = new ResizeObserver(() => {
       const rect = canvas.getBoundingClientRect()
       canvas.width = rect.width * window.devicePixelRatio
       canvas.height = rect.height * window.devicePixelRatio
       draw()
     })
-    
     resizeObserver.observe(canvas)
-    
     let animationId: number
     const draw = () => {
       const ctx = canvas.getContext('2d')
       if (!ctx) return
-
       const isLight = document.documentElement.getAttribute('data-theme') === 'light'
-      
       const width = canvas.width
       const height = canvas.height
       const padding = 40 * window.devicePixelRatio
-      
       ctx.clearRect(0, 0, width, height)
-
       ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.02)'
       ctx.lineWidth = 1
       ctx.font = `${9 * window.devicePixelRatio}px "JetBrains Mono", monospace`
       ctx.fillStyle = isLight ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.2)'
-
       const frequencies = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000]
       frequencies.forEach(f => {
         const x = freqToX(f, width, padding)
@@ -200,11 +183,9 @@ export const EQVisualizer = () => {
         ctx.moveTo(x, padding)
         ctx.lineTo(x, height - padding)
         ctx.stroke()
-        
         const label = f >= 1000 ? `${f/1000}k` : `${f}`
         ctx.fillText(label, x - ctx.measureText(label).width / 2, height - padding + 15 * window.devicePixelRatio)
       })
-
       const dbs = [-12, -6, 0, 6, 12]
       dbs.forEach(db => {
         const y = dbToY(db, height, padding)
@@ -212,7 +193,6 @@ export const EQVisualizer = () => {
         ctx.moveTo(padding, y)
         ctx.lineTo(width - padding, y)
         ctx.stroke()
-        
         if (db === 0) {
           ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.06)'
           ctx.stroke()
@@ -220,40 +200,33 @@ export const EQVisualizer = () => {
         }
         ctx.fillText(`${db}dB`, padding - 35 * window.devicePixelRatio, y + 4 * window.devicePixelRatio)
       })
-
       if (activeProfile) {
         ctx.beginPath()
         ctx.strokeStyle = 'rgba(239, 68, 68, 0.35)'
         ctx.lineWidth = 1.5 * window.devicePixelRatio
         ctx.setLineDash([4 * window.devicePixelRatio, 4 * window.devicePixelRatio])
-        
         for (let x = padding; x < width - padding; x++) {
           const freq = xToFreq(x, width, padding)
           const rawResponse = calculateRawRoomResponse(freq, activeProfile)
           const y = dbToY(rawResponse, height, padding)
-          
           if (x === padding) ctx.moveTo(x, y)
           else ctx.lineTo(x, y)
         }
         ctx.stroke()
         ctx.setLineDash([])
       }
-
       ctx.beginPath()
       ctx.strokeStyle = '#ff8c00'
       ctx.lineWidth = 2.5 * window.devicePixelRatio
       ctx.lineJoin = 'round'
-
       for (let x = padding; x < width - padding; x++) {
         const freq = xToFreq(x, width, padding)
         const response = calculateCombinedResponse(freq, bands)
         const y = dbToY(response, height, padding)
-        
         if (x === padding) ctx.moveTo(x, y)
         else ctx.lineTo(x, y)
       }
       ctx.stroke()
-
       ctx.lineTo(width - padding, height - padding)
       ctx.lineTo(padding, height - padding)
       const fillGrad = ctx.createLinearGradient(0, padding, 0, height - padding)
@@ -261,35 +234,28 @@ export const EQVisualizer = () => {
       fillGrad.addColorStop(1, 'rgba(255, 140, 0, 0)')
       ctx.fillStyle = fillGrad
       ctx.fill()
-
       if (activeProfile) {
         ctx.beginPath()
         ctx.strokeStyle = '#00f2fe'
         ctx.lineWidth = 2 * window.devicePixelRatio
         ctx.lineJoin = 'round'
-        
         ctx.shadowColor = '#00f2fe'
         ctx.shadowBlur = 4 * window.devicePixelRatio
-
         for (let x = padding; x < width - padding; x++) {
           const freq = xToFreq(x, width, padding)
           const rawRoom = calculateRawRoomResponse(freq, activeProfile)
           const eqVal = calculateCombinedResponse(freq, bands)
-          
           const resulting = rawRoom + eqVal
           const y = dbToY(resulting, height, padding)
-          
           if (x === padding) ctx.moveTo(x, y)
           else ctx.lineTo(x, y)
         }
         ctx.stroke()
         ctx.shadowBlur = 0
       }
-
       bands.forEach(band => {
         const x = freqToX(band.frequency, width, padding)
         const y = dbToY(band.gain, height, padding)
-        
         ctx.beginPath()
         ctx.arc(x, y, 6 * window.devicePixelRatio, 0, Math.PI * 2)
         ctx.fillStyle = isLight ? '#0f172a' : '#ffffff'
@@ -297,7 +263,6 @@ export const EQVisualizer = () => {
         ctx.strokeStyle = '#ff8c00'
         ctx.lineWidth = 2.5 * window.devicePixelRatio
         ctx.stroke()
-
         if (isDragging === band.id) {
           ctx.beginPath()
           ctx.arc(x, y, 12 * window.devicePixelRatio, 0, Math.PI * 2)
@@ -306,10 +271,8 @@ export const EQVisualizer = () => {
           ctx.stroke()
         }
       })
-
       animationId = requestAnimationFrame(draw)
     }
-
     draw()
     return () => {
       resizeObserver.disconnect()
@@ -323,11 +286,9 @@ export const EQVisualizer = () => {
     const rect = canvas.getBoundingClientRect()
     const x = (clientX - rect.left) * window.devicePixelRatio
     const y = (clientY - rect.top) * window.devicePixelRatio
-    
     const width = canvas.width
     const height = canvas.height
     const padding = 40 * window.devicePixelRatio
-
     if (isDragging) {
       const newDb = yToDb(y, height, padding)
       eqManager.setBandGain(isDragging, newDb)
@@ -394,7 +355,6 @@ export const EQVisualizer = () => {
             CURVAS FÍSICAS DE SALA + CORRECCIÓN DSP
           </span>
         </div>
-
         <div className="absolute top-6 right-6 pointer-events-none z-20 flex gap-4 text-[7.5px] font-bold uppercase tracking-wider bg-black/45 backdrop-blur px-2.5 py-1.5 rounded-xl border border-white/5 select-none">
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-0.5 border-t border-dashed border-red-500/50" />
@@ -409,7 +369,6 @@ export const EQVisualizer = () => {
             <span className="text-[#00f2fe]">Resultado Predicho</span>
           </div>
         </div>
-
         <canvas 
           ref={canvasRef}
           className="w-full h-full cursor-crosshair touch-none bg-[#080a0e]"
@@ -422,7 +381,7 @@ export const EQVisualizer = () => {
         />
       </GlassPanel>
 
-      {/* Real-time Acoustic Advisor glass panel */}
+      {/* Real-time Acoustic Advisor + Report Button */}
       <GlassPanel className="p-3 flex-shrink-0 flex flex-col md:flex-row items-center justify-between gap-4 border-white/5" style={{ background: 'var(--panel)' }} hoverEffect>
         <div className="flex items-center gap-3 w-full md:w-auto">
           <div 
@@ -439,13 +398,9 @@ export const EQVisualizer = () => {
             </span>
             <div 
               className="absolute bottom-0 left-0 w-full transition-all duration-300 opacity-20" 
-              style={{ 
-                height: `${feedback.accuracy}%`, 
-                backgroundColor: feedback.accentColor
-              }} 
+              style={{ height: `${feedback.accuracy}%`, backgroundColor: feedback.accentColor }} 
             />
           </div>
-          
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h5 className="text-[10px] font-black text-white uppercase tracking-wider">
@@ -461,7 +416,7 @@ export const EQVisualizer = () => {
           </div>
         </div>
 
-        {/* Detailed diagnostic advisor message + download button */}
+        {/* Message + Report Button - SIEMPRE VISIBLE */}
         <div className="flex-grow md:max-w-md w-full text-left md:text-right border-t md:border-t-0 md:border-l border-white/[0.04] pt-3 md:pt-0 md:pl-4 flex flex-col gap-2">
           <p className="text-[8.5px] text-text-soft leading-relaxed uppercase font-bold tracking-tight">
             {feedback.message}
@@ -471,13 +426,13 @@ export const EQVisualizer = () => {
             disabled={!activeProfile}
             className={`self-end flex items-center gap-1.5 font-bold px-3 py-1.5 rounded-lg transition-all text-[9px] uppercase tracking-widest ${
               activeProfile
-                ? 'bg-white/8 hover:bg-white/15 border border-white/15 text-white/70 hover:text-white cursor-pointer'
-                : 'bg-white/4 border border-white/5 text-white/30 cursor-not-allowed'
+                ? 'bg-accent/20 hover:bg-accent/30 border border-accent/40 text-accent hover:text-white cursor-pointer'
+                : 'bg-white/5 border border-white/10 text-white/30 cursor-not-allowed'
             }`}
-            title={activeProfile ? "Descargar informe PDF de la sala calibrada" : "Calibra una sala primero para generar el informe"}
+            title={activeProfile ? "Descargar informe de la sala calibrada" : "Calibra una sala primero para generar el informe"}
           >
             <FileDown className="w-3 h-3" />
-            Informe de sala
+            {activeProfile ? 'Descargar informe' : 'Sin perfil de sala'}
           </button>
         </div>
       </GlassPanel>
