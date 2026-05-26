@@ -78,7 +78,6 @@ function Select<T extends string | number>({
       value={value}
       onChange={e => {
         const raw = e.target.value
-        // Cast back to number if original type is number
         onChange((typeof value === 'number' ? Number(raw) : raw) as T)
       }}
       className="bg-[var(--bg)] border border-white/[0.08] rounded-lg text-[10px] font-bold text-text font-mono px-2 py-1.5 cursor-pointer outline-none focus:border-accent/50 min-w-[110px]"
@@ -148,7 +147,6 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   const [saved, setSaved] = useState(false)
   const overlayRef = useRef<HTMLDivElement>(null)
 
-  // Close on Escape
   useEffect(() => {
     if (!open) return
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -162,14 +160,16 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
 
   function handleApply() {
     persistSettings(settings)
-    // Apply to live AudioManager if running
-    const analyser = AudioManager.getInstance().getAnalyser()
-    if (analyser) {
-      analyser.fftSize = settings.fftSize
-      analyser.smoothingTimeConstant = settings.smoothingTimeConstant
-    }
-    // Notify same-tab listeners immediately
+    
+    // Aplicar los cambios al motor de audio activo inmediatamente
+    AudioManager.getInstance().updateAnalyserSettings(
+      settings.fftSize, 
+      settings.smoothingTimeConstant
+    )
+
+    // Notificar a los componentes de la UI para refrescar la vista
     window.dispatchEvent(new CustomEvent('freqlens-settings-changed'))
+    
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -184,7 +184,6 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   return (
     <AnimatePresence>
       {open && (
-        // Overlay
         <motion.div
           ref={overlayRef}
           initial={{ opacity: 0 }}
@@ -194,7 +193,6 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
           onClick={e => { if (e.target === overlayRef.current) onClose() }}
           className="fixed inset-0 z-[9999] flex items-start justify-end pt-[52px] pr-3"
         >
-          {/* Panel */}
           <motion.div
             initial={{ opacity: 0, y: -8, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -202,41 +200,30 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
             transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
             className="w-80 max-h-[calc(100vh-64px)] overflow-y-auto bg-[var(--panel-solid)] border border-white/[0.08] rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.04)] flex flex-col"
           >
-            {/* Header */}
             <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06] sticky top-0 bg-[var(--panel-solid)] z-10">
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_6px_var(--accent)]" />
-                <span className="text-[11px] font-black uppercase tracking-[0.12em] text-text">
-                  CONFIGURACIÓN
-                </span>
+                <span className="text-[11px] font-black uppercase tracking-[0.12em] text-text">CONFIGURACIÓN</span>
               </div>
-              <button
-                onClick={onClose}
-                className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-white/[0.06] transition-all cursor-pointer"
-              >
+              <button onClick={onClose} className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-white/[0.06] transition-all cursor-pointer">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            {/* Body */}
             <div className="px-4 py-4 flex-1">
-
-              {/* ── FFT Analysis ────────────────────────── */}
               <SectionHeader icon={<Cpu className="w-3.5 h-3.5" />} label="Análisis FFT" />
-
               <Row label="Tamaño FFT" hint={`${fftBins} bins · ~${fftResolution} Hz/bin`}>
                 <Select
                   value={settings.fftSize}
                   onChange={v => set('fftSize', v as FreqLensSettings['fftSize'])}
                   options={[
-                    { label: '1024  rápido', value: 1024 as const },
+                    { label: '1024 rápido', value: 1024 as const },
                     { label: '2048', value: 2048 as const },
-                    { label: '4096  defecto', value: 4096 as const },
-                    { label: '8192  preciso', value: 8192 as const },
+                    { label: '4096 defecto', value: 4096 as const },
+                    { label: '8192 preciso', value: 8192 as const },
                   ]}
                 />
               </Row>
-
               <Row label="Suavizado" hint="Mayor valor → respuesta más lenta">
                 <Slider
                   value={settings.smoothingTimeConstant} min={0} max={0.99} step={0.01}
@@ -244,7 +231,6 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                   format={v => v.toFixed(2)}
                 />
               </Row>
-
               <Row label="Decay peak hold" hint="Tiempo hasta que el pico baja">
                 <Slider
                   value={settings.peakHoldDecay} min={200} max={5000} step={100}
@@ -253,9 +239,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                 />
               </Row>
 
-              {/* ── Tuner ───────────────────────────────── */}
               <SectionHeader icon={<AudioLines className="w-3.5 h-3.5" />} label="Afinador YIN" />
-
               <Row label="Referencia A4" hint="Frecuencia de afinación estándar">
                 <Slider
                   value={settings.referenceA4} min={420} max={460} step={0.5}
@@ -263,7 +247,6 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                   format={v => `${v.toFixed(1)}Hz`}
                 />
               </Row>
-
               <Row label="Umbral YIN" hint="Menor valor → más preciso pero inestable">
                 <Slider
                   value={settings.yinThreshold} min={0.05} max={0.20} step={0.01}
@@ -272,37 +255,15 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                 />
               </Row>
 
-              {/* ── Display ─────────────────────────────── */}
               <SectionHeader icon={<Eye className="w-3.5 h-3.5" />} label="Visualización" />
-
               <Row label="Mostrar FPS" hint="Contador en la barra del analizador">
                 <Toggle value={settings.displayFps} onChange={v => set('displayFps', v)} />
               </Row>
-
               <Row label="Mostrar info FFT" hint="FFT size y modo de procesamiento">
                 <Toggle value={settings.displayFftInfo} onChange={v => set('displayFftInfo', v)} />
               </Row>
-
-              {/* ── Session info card ────────────────────── */}
-              <div className="mt-4 bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
-                <p className="text-[8px] font-black uppercase tracking-[0.12em] text-text-muted mb-2.5">
-                  Sesión actual
-                </p>
-                {([
-                  ['FFT size', `${settings.fftSize} muestras`],
-                  ['Resolución', `~${fftResolution} Hz/bin`],
-                  ['Ref. A4', `${settings.referenceA4.toFixed(1)} Hz`],
-                  ['Peak decay', `${settings.peakHoldDecay} ms`],
-                ] as [string, string][]).map(([k, v]) => (
-                  <div key={k} className="flex justify-between mb-1.5 last:mb-0">
-                    <span className="text-[9px] text-text-muted">{k}</span>
-                    <span className="text-[9px] font-bold text-text-soft font-mono">{v}</span>
-                  </div>
-                ))}
-              </div>
             </div>
 
-            {/* Footer */}
             <div className="px-4 py-3 border-t border-white/[0.06] flex gap-2 sticky bottom-0 bg-[var(--panel-solid)]">
               <button
                 onClick={handleReset}
@@ -320,11 +281,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                     : 'bg-accent text-black hover:brightness-110 shadow-[0_0_12px_rgba(255,140,0,0.25)]'
                 )}
               >
-                {saved ? (
-                  <><Check className="w-3 h-3" /> Guardado</>
-                ) : (
-                  'Aplicar cambios'
-                )}
+                {saved ? <><Check className="w-3 h-3" /> Guardado</> : 'Aplicar cambios'}
               </button>
             </div>
           </motion.div>

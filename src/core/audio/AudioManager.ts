@@ -1,10 +1,7 @@
 import { AdaptiveEQManager } from './AdaptiveEQManager'
 
-// Esta es la forma más compatible con Vite para cargar un AudioWorklet
-// Asegúrate de que el archivo 'yin-processor.js' exista en esta misma carpeta
 const yinProcessorUrl = new URL('./yin-processor.js', import.meta.url).href
 
-// Inline settings loader to avoid circular imports
 function _loadAudioSettings(): { fftSize: number; smoothingTimeConstant: number } {
   try {
     const raw = localStorage.getItem('freqlens_settings')
@@ -39,6 +36,13 @@ export class AudioManager {
     return AudioManager.instance
   }
 
+  public updateAnalyserSettings(fftSize: number, smoothing: number) {
+    if (this.analyser) {
+      this.analyser.fftSize = fftSize;
+      this.analyser.smoothingTimeConstant = smoothing;
+    }
+  }
+
   public async initialize(): Promise<void> {
     this.dispose()
 
@@ -56,7 +60,6 @@ export class AudioManager {
         sampleRate: 48000,
       })
 
-      // Cargamos el módulo. .href asegura una cadena de texto limpia para el navegador
       await this.context.audioWorklet.addModule(yinProcessorUrl)
       
       this.yinNode = new AudioWorkletNode(this.context, 'yin-processor')
@@ -72,7 +75,6 @@ export class AudioManager {
       this.analyser.smoothingTimeConstant = audioSettings.smoothingTimeConstant
       
       this.source = this.context.createMediaStreamSource(this.stream)
-      
       this.source.connect(this.yinNode)
       
       const eqManager = AdaptiveEQManager.getInstance()
@@ -88,38 +90,13 @@ export class AudioManager {
     }
   }
 
-  public setOnPitchListener(callback: (pitch: number) => void) {
-    this.onPitchCallback = callback
-  }
-
-  public getAnalyser(): AnalyserNode | null {
-    return this.analyser
-  }
-
-  public getContext(): AudioContext | null {
-    return this.context
-  }
-
-  public getStream(): MediaStream | null {
-    return this.stream
-  }
-
-  public getSource(): MediaStreamAudioSourceNode | null {
-    return this.source
-  }
-
-  public async resume(): Promise<void> {
-    if (this.context?.state === 'suspended') {
-      await this.context.resume()
-    }
-  }
-
-  public async suspend(): Promise<void> {
-    if (this.context?.state === 'running') {
-      await this.context.suspend()
-    }
-  }
-
+  public setOnPitchListener(callback: (pitch: number) => void) { this.onPitchCallback = callback }
+  public getAnalyser(): AnalyserNode | null { return this.analyser }
+  public getContext(): AudioContext | null { return this.context }
+  public getStream(): MediaStream | null { return this.stream }
+  public getSource(): MediaStreamAudioSourceNode | null { return this.source }
+  public async resume(): Promise<void> { if (this.context?.state === 'suspended') await this.context.resume() }
+  public async suspend(): Promise<void> { if (this.context?.state === 'running') await this.context.suspend() }
   public dispose(): void {
     AdaptiveEQManager.getInstance().disconnect()
     this.stream?.getTracks().forEach(track => track.stop())
