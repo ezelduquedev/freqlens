@@ -1,18 +1,13 @@
-import { Settings } from 'lucide-react'
-import { IconButton } from '../ui/IconButton'
-
 interface TopbarProps {
   engineRunning: boolean
   toggleEngine: () => void
   activeTabLabel: string
-  onSettingsClick: () => void
 }
 
 export function Topbar({
   engineRunning,
   toggleEngine,
   activeTabLabel,
-  onSettingsClick,
 }: TopbarProps) {
   return (
     <header className="w-full h-16 flex-shrink-0 border-b border-border-custom bg-panel/30 backdrop-blur-md flex items-center justify-between px-6 z-50 select-none">
@@ -51,14 +46,6 @@ export function Topbar({
           </span>
           {engineRunning ? 'DETENER MOTOR' : 'INICIAR MOTOR'}
         </button>
-
-        <IconButton
-          icon={<Settings className="w-4 h-4" />}
-          variant="ghost"
-          size="sm"
-          title="Configuracion"
-          onClick={onSettingsClick}
-        />
       </div>
     </header>
   )

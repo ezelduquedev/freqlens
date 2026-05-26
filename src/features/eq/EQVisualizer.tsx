@@ -45,14 +45,12 @@ const calculateCombinedResponse = (freq: number, bands: EQBand[]) => {
       const dist = Math.abs(Math.log2(f))
       totalGain += g * Math.exp(-(dist * dist) / (bandwidth * bandwidth))
     } else if (band.type === 'lowshelf') {
-      // Smooth shelf transition using atan
       const transition = 0.5 - Math.atan(Math.log2(f) * 2.5) / Math.PI
       totalGain += band.gain * transition
     } else if (band.type === 'highshelf') {
       const transition = 0.5 + Math.atan(Math.log2(f) * 2.5) / Math.PI
       totalGain += band.gain * transition
     } else if (band.type === 'highpass') {
-      // Smooth 12dB/octave Butterworth highpass approximation
       const f4 = Math.pow(f, 4)
       totalGain += 10 * Math.log10(f4 / (1 + f4))
     }
@@ -60,10 +58,6 @@ const calculateCombinedResponse = (freq: number, bands: EQBand[]) => {
   return totalGain
 }
 
-/**
- * Calcula la desviación física cruda de la sala (sin corregir)
- * a partir del inverso de la recomendación ideal de calibración
- */
 const calculateRawRoomResponse = (freq: number, profile: RoomProfile | null) => {
   if (!profile) return 0
   
@@ -81,20 +75,14 @@ const calculateRawRoomResponse = (freq: number, profile: RoomProfile | null) => 
     const bandwidth = 1 / q
     const dist = Math.abs(Math.log2(f))
     
-    // La desviación acústica cruda de la sala es el opuesto de la calibración correctiva ideal
     const rawDev = -idealCorrection
     deviation += rawDev * Math.exp(-(dist * dist) / (bandwidth * bandwidth))
   })
   
-  // Agregar rizado físico orgánico sutil para representar micro-reflexiones acústicas reales
   const ripple = Math.sin(Math.log10(freq) * 20) * 0.35
   return deviation + ripple
 }
 
-/**
- * Evalúa el nivel de coincidencia de la ecualización actual con la recomendada
- * para corregir la acústica de la sala
- */
 const getAcousticAdvisorFeedback = (bands: EQBand[], profile: RoomProfile | null) => {
   if (!profile) {
     return {
@@ -117,8 +105,6 @@ const getAcousticAdvisorFeedback = (bands: EQBand[], profile: RoomProfile | null
   })
 
   const averageDiff = bandCount > 0 ? (totalDifference / bandCount) : 0
-  
-  // La precisión se escala de 100% (diferencia 0) a 0% (diferencia >= 5dB promedio)
   const accuracy = Math.max(0, Math.min(100, Math.round(100 - (averageDiff / 5) * 100)))
   
   if (accuracy >= 85) {
@@ -168,7 +154,6 @@ export const EQVisualizer = () => {
   const eqManager = AdaptiveEQManager.getInstance()
 
   useEffect(() => {
-    // Cargar perfil activo para realizar las predicciones
     const list = RoomProfileStorage.getAllProfiles()
     if (list.length > 0) {
       setActiveProfile(list[0])
@@ -203,7 +188,6 @@ export const EQVisualizer = () => {
       
       ctx.clearRect(0, 0, width, height)
 
-      // Draw Grid Lines
       ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.02)'
       ctx.lineWidth = 1
       ctx.font = `${9 * window.devicePixelRatio}px "JetBrains Mono", monospace`
@@ -237,7 +221,6 @@ export const EQVisualizer = () => {
         ctx.fillText(`${db}dB`, padding - 35 * window.devicePixelRatio, y + 4 * window.devicePixelRatio)
       })
 
-      // 1. CURVA 1: Respuesta Física de la Sala (Sin corregir, Línea Roja Segmentada)
       if (activeProfile) {
         ctx.beginPath()
         ctx.strokeStyle = 'rgba(239, 68, 68, 0.35)'
@@ -253,10 +236,9 @@ export const EQVisualizer = () => {
           else ctx.lineTo(x, y)
         }
         ctx.stroke()
-        ctx.setLineDash([]) // Resetear dashes
+        ctx.setLineDash([])
       }
 
-      // 2. CURVA 2: Curva de Filtro EQ Actual (Línea Naranja Sólida con Relleno)
       ctx.beginPath()
       ctx.strokeStyle = '#ff8c00'
       ctx.lineWidth = 2.5 * window.devicePixelRatio
@@ -272,7 +254,6 @@ export const EQVisualizer = () => {
       }
       ctx.stroke()
 
-      // Relleno bajo la curva de EQ
       ctx.lineTo(width - padding, height - padding)
       ctx.lineTo(padding, height - padding)
       const fillGrad = ctx.createLinearGradient(0, padding, 0, height - padding)
@@ -281,14 +262,12 @@ export const EQVisualizer = () => {
       ctx.fillStyle = fillGrad
       ctx.fill()
 
-      // 3. CURVA 3: Espectro Predicho Resultante (Línea Turquesa Brillante con resplandor)
       if (activeProfile) {
         ctx.beginPath()
         ctx.strokeStyle = '#00f2fe'
         ctx.lineWidth = 2 * window.devicePixelRatio
         ctx.lineJoin = 'round'
         
-        // Agregar efecto de brillo cibernético en canvas
         ctx.shadowColor = '#00f2fe'
         ctx.shadowBlur = 4 * window.devicePixelRatio
 
@@ -297,7 +276,6 @@ export const EQVisualizer = () => {
           const rawRoom = calculateRawRoomResponse(freq, activeProfile)
           const eqVal = calculateCombinedResponse(freq, bands)
           
-          // La predicción es la suma de la física de la sala y la corrección DSP
           const resulting = rawRoom + eqVal
           const y = dbToY(resulting, height, padding)
           
@@ -305,10 +283,9 @@ export const EQVisualizer = () => {
           else ctx.lineTo(x, y)
         }
         ctx.stroke()
-        ctx.shadowBlur = 0 // Desactivar resplandor para otros elementos
+        ctx.shadowBlur = 0
       }
 
-      // 4. NODOS DE CONTROL INTERACTIVOS (Puntos blancos con borde naranja)
       bands.forEach(band => {
         const x = freqToX(band.frequency, width, padding)
         const y = dbToY(band.gain, height, padding)
@@ -321,7 +298,6 @@ export const EQVisualizer = () => {
         ctx.lineWidth = 2.5 * window.devicePixelRatio
         ctx.stroke()
 
-        // Resaltar nodo activo en arrastre
         if (isDragging === band.id) {
           ctx.beginPath()
           ctx.arc(x, y, 12 * window.devicePixelRatio, 0, Math.PI * 2)
@@ -357,7 +333,6 @@ export const EQVisualizer = () => {
       eqManager.setBandGain(isDragging, newDb)
       setBands([...eqManager.getBands()])
     } else {
-      // Elegir la banda más cercana al cursor
       bands.forEach(band => {
         const bx = freqToX(band.frequency, width, padding)
         const by = dbToY(band.gain, height, padding)
@@ -411,7 +386,6 @@ export const EQVisualizer = () => {
     <div className="flex flex-col h-full w-full gap-3 font-mono">
       {/* Visualizer Canvas Panel */}
       <GlassPanel className="p-0 overflow-hidden flex-grow relative" strong>
-        {/* Top header overlay */}
         <div className="absolute top-6 left-6 pointer-events-none z-20">
           <h4 className="text-[11px] font-black text-white uppercase tracking-wider">
             PREDICCIÓN Y RESPUESTA DE FRECUENCIA
@@ -421,7 +395,6 @@ export const EQVisualizer = () => {
           </span>
         </div>
 
-        {/* High-tech color legend overlay */}
         <div className="absolute top-6 right-6 pointer-events-none z-20 flex gap-4 text-[7.5px] font-bold uppercase tracking-wider bg-black/45 backdrop-blur px-2.5 py-1.5 rounded-xl border border-white/5 select-none">
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-0.5 border-t border-dashed border-red-500/50" />
@@ -452,7 +425,6 @@ export const EQVisualizer = () => {
       {/* Real-time Acoustic Advisor glass panel */}
       <GlassPanel className="p-3 flex-shrink-0 flex flex-col md:flex-row items-center justify-between gap-4 border-white/5" style={{ background: 'var(--panel)' }} hoverEffect>
         <div className="flex items-center gap-3 w-full md:w-auto">
-          {/* Accuracy circle badge */}
           <div 
             className="flex-shrink-0 w-11 h-11 rounded-full border flex flex-col items-center justify-center relative overflow-hidden select-none shadow-sm"
             style={{ borderColor: 'var(--border-strong)', background: 'var(--bg-elevated)' }}
@@ -494,16 +466,19 @@ export const EQVisualizer = () => {
           <p className="text-[8.5px] text-text-soft leading-relaxed uppercase font-bold tracking-tight">
             {feedback.message}
           </p>
-          {activeProfile && (
-            <button
-              onClick={handleDownloadReport}
-              className="self-end flex items-center gap-1.5 bg-white/8 hover:bg-white/15 border border-white/15 text-white/70 hover:text-white font-bold px-3 py-1.5 rounded-lg transition-all text-[9px] uppercase tracking-widest cursor-pointer"
-              title="Descargar informe PDF de la sala calibrada"
-            >
-              <FileDown className="w-3 h-3" />
-              Informe de sala
-            </button>
-          )}
+          <button
+            onClick={handleDownloadReport}
+            disabled={!activeProfile}
+            className={`self-end flex items-center gap-1.5 font-bold px-3 py-1.5 rounded-lg transition-all text-[9px] uppercase tracking-widest ${
+              activeProfile
+                ? 'bg-white/8 hover:bg-white/15 border border-white/15 text-white/70 hover:text-white cursor-pointer'
+                : 'bg-white/4 border border-white/5 text-white/30 cursor-not-allowed'
+            }`}
+            title={activeProfile ? "Descargar informe PDF de la sala calibrada" : "Calibra una sala primero para generar el informe"}
+          >
+            <FileDown className="w-3 h-3" />
+            Informe de sala
+          </button>
         </div>
       </GlassPanel>
     </div>

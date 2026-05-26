@@ -9,7 +9,6 @@ interface AppShellProps {
   setActiveTab: (tab: TabId) => void
   engineRunning: boolean
   toggleEngine: () => void
-  onSettingsClick: () => void   // ← añadido
 }
 
 export function AppShell({
@@ -18,7 +17,6 @@ export function AppShell({
   setActiveTab,
   engineRunning,
   toggleEngine,
-  onSettingsClick,              // ← añadido
 }: AppShellProps) {
   const tabLabels: Record<TabId, string> = {
     analyzer: 'Analizador Espectral',
@@ -53,7 +51,6 @@ export function AppShell({
             engineRunning={engineRunning}
             toggleEngine={toggleEngine}
             activeTabLabel={tabLabels[activeTab]}
-            onSettingsClick={onSettingsClick}   // ← añadido
           />
 
           {/* Workspace container */}
