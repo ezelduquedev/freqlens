@@ -168,6 +168,8 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
       analyser.fftSize = settings.fftSize
       analyser.smoothingTimeConstant = settings.smoothingTimeConstant
     }
+    // Notify same-tab listeners immediately
+    window.dispatchEvent(new CustomEvent('freqlens-settings-changed'))
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }

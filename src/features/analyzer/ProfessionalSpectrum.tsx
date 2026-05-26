@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/purity */
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { AudioManager } from '../../core/audio/AudioManager'
 import { useAnimationFrame } from '../../hooks/useAnimationFrame'
 import { SmartAnalyzer, type AudioFeedback } from '../../core/audio/SmartAnalyzer'
+import { loadSettings, type FreqLensSettings } from '../settings/SettingsPanel'
 import { Activity, Radio, Cpu } from 'lucide-react'
 
 interface SpectrumProps {
@@ -100,11 +101,23 @@ export const ProfessionalSpectrum = ({
   const [feedback, setFeedback] = useState<AudioFeedback[]>([])
   const [fps, setFps] = useState(0)
   const [isSilent, setIsSilent] = useState(true)
+  const [settings, setSettings] = useState<FreqLensSettings>(loadSettings)
   const lastTimeRef = useRef(performance.now())
   const framesRef = useRef(0)
   
   // DSP envelope hold to prevent rapid state flickering (1.5-second hold time)
   const activeHoldFramesRef = useRef(0)
+
+  // Reload settings when applied from SettingsPanel (same-tab polling + instant event)
+  useEffect(() => {
+    const refresh = () => setSettings(loadSettings())
+    window.addEventListener('freqlens-settings-changed', refresh)
+    const interval = setInterval(refresh, 2000)
+    return () => {
+      window.removeEventListener('freqlens-settings-changed', refresh)
+      clearInterval(interval)
+    }
+  }, [])
 
   useAnimationFrame(() => {
     const audioManager = AudioManager.getInstance()
@@ -196,7 +209,9 @@ export const ProfessionalSpectrum = ({
           <Activity className="w-3.5 h-3.5 text-accent animate-pulse" />
           <span>FPS: {fps > 0 ? fps : '--'}</span>
           <span className="opacity-20">|</span>
-          <span>FFT: 4096</span>
+          <span>FFT: {settings.fftSize}</span>
+          <span className="opacity-20">|</span>
+          <span>SM: {settings.smoothingTimeConstant.toFixed(2)}</span>
           <span className="opacity-20">|</span>
           <span className="text-accent font-bold uppercase">Main Thread</span>
         </div>

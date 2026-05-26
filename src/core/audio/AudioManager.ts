@@ -4,6 +4,21 @@ import { AdaptiveEQManager } from './AdaptiveEQManager'
 // Asegúrate de que el archivo 'yin-processor.js' exista en esta misma carpeta
 const yinProcessorUrl = new URL('./yin-processor.js', import.meta.url).href
 
+// Inline settings loader to avoid circular imports
+function _loadAudioSettings(): { fftSize: number; smoothingTimeConstant: number } {
+  try {
+    const raw = localStorage.getItem('freqlens_settings')
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      return {
+        fftSize: parsed.fftSize ?? 4096,
+        smoothingTimeConstant: parsed.smoothingTimeConstant ?? 0.80,
+      }
+    }
+  } catch { /* ignore */ }
+  return { fftSize: 4096, smoothingTimeConstant: 0.80 }
+}
+
 export type AudioEngineStatus = 'suspended' | 'running' | 'closed'
 
 export class AudioManager {
@@ -52,7 +67,9 @@ export class AudioManager {
       }
 
       this.analyser = this.context.createAnalyser()
-      this.analyser.fftSize = 4096
+      const audioSettings = _loadAudioSettings()
+      this.analyser.fftSize = audioSettings.fftSize
+      this.analyser.smoothingTimeConstant = audioSettings.smoothingTimeConstant
       
       this.source = this.context.createMediaStreamSource(this.stream)
       

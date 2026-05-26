@@ -5,6 +5,7 @@ import { EQPresets } from '../eq/EQPresets'
 import { RMSMeter } from './RMSMeter'
 import { GlassPanel } from '../../ui/GlassPanel'
 import { RoomProfileStorage } from '../../core/audio/RoomProfileStorage'
+import { loadSettings } from '../settings/SettingsPanel'
 import { useState, useEffect } from 'react'
 
 interface DashboardPageProps {
@@ -14,6 +15,27 @@ interface DashboardPageProps {
 
 export function DashboardPage({ onRunWizard, onUpdateEQ }: DashboardPageProps) {
   const [activeProfileName, setActiveProfileName] = useState('MASTER CONTROL ROOM B')
+  const [settings, setSettings] = useState(loadSettings)
+
+  // Reload settings every 2s and on instant event to pick up changes applied from SettingsPanel
+  useEffect(() => {
+    const refresh = () => setSettings(loadSettings())
+    window.addEventListener('freqlens-settings-changed', refresh)
+    const interval = setInterval(refresh, 2000)
+    return () => {
+      window.removeEventListener('freqlens-settings-changed', refresh)
+      clearInterval(interval)
+    }
+  }, [])
+
+  // Derive human-readable latency label from smoothingTimeConstant
+  const latencyLabel =
+    settings.smoothingTimeConstant >= 0.9 ? 'Alta' :
+    settings.smoothingTimeConstant >= 0.7 ? 'Media' : 'Baja'
+
+  const latencyColor =
+    settings.smoothingTimeConstant >= 0.9 ? 'text-accent' :
+    settings.smoothingTimeConstant >= 0.7 ? 'text-success' : 'text-blue-400'
 
   // Load the active room profile name from storage
   useEffect(() => {
@@ -91,12 +113,12 @@ export function DashboardPage({ onRunWizard, onUpdateEQ }: DashboardPageProps) {
               <span className="text-[8.5px] text-text-main font-extrabold block mt-0.5">48 kHz</span>
             </div>
             <div className="bg-bg-elevated border border-border-custom py-1 px-1.5 rounded-lg">
-              <span className="text-[6.5px] text-text-soft uppercase tracking-tighter block font-bold">BUFFER</span>
-              <span className="text-[8.5px] text-accent font-extrabold block mt-0.5">Low</span>
+              <span className="text-[6.5px] text-text-soft uppercase tracking-tighter block font-bold">FFT</span>
+              <span className="text-[8.5px] text-accent font-extrabold block mt-0.5">{settings.fftSize}</span>
             </div>
             <div className="bg-bg-elevated border border-border-custom py-1 px-1.5 rounded-lg">
               <span className="text-[6.5px] text-text-soft uppercase tracking-tighter block font-bold">LATENCIA</span>
-              <span className="text-[8.5px] text-success font-extrabold block mt-0.5">Estable</span>
+              <span className={`text-[8.5px] font-extrabold block mt-0.5 ${latencyColor}`}>{latencyLabel}</span>
             </div>
           </div>
         </GlassPanel>
