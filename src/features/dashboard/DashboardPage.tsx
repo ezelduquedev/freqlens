@@ -4,7 +4,7 @@ import { AdaptiveEQControls } from '../eq/AdaptiveEQControls'
 import { EQPresets } from '../eq/EQPresets'
 import { GlassPanel } from '../../ui/GlassPanel'
 import { RoomProfileStorage } from '../../core/audio/RoomProfileStorage'
-import { loadSettings } from '../settings/SettingsPanel'
+import { loadSettings } from '../settings/settingsCore'
 import { useState, useEffect } from 'react'
 import { RMSMeter } from './RMSMeter'
 

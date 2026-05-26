@@ -3,7 +3,7 @@ import { useRef, useState, useEffect } from 'react'
 import { AudioManager } from '../../core/audio/AudioManager'
 import { useAnimationFrame } from '../../hooks/useAnimationFrame'
 import { SmartAnalyzer, type AudioFeedback } from '../../core/audio/SmartAnalyzer'
-import { loadSettings, type FreqLensSettings } from '../settings/SettingsPanel'
+import { loadSettings, type FreqLensSettings } from '../settings/settingsCore'
 import { Activity, Radio, Cpu } from 'lucide-react'
 
 interface SpectrumProps {
@@ -24,14 +24,13 @@ function renderSpectrum(
 
   const accentColor = theme.primary || '#ff8c00'
 
-  // Gradient for the line
   const gradient = ctx.createLinearGradient(0, 0, width, 0)
   gradient.addColorStop(0, accentColor)
-  gradient.addColorStop(1, accentColor + '80') // semi-transparent end
+  gradient.addColorStop(1, accentColor + '80')
 
   ctx.beginPath()
   ctx.strokeStyle = gradient
-  ctx.lineWidth = 3 // thicker line for premium look
+  ctx.lineWidth = 3
   ctx.lineJoin = 'round'
 
   const minFreq = 20
@@ -46,8 +45,8 @@ function renderSpectrum(
     if (freq < minFreq) continue
 
     const x = ((Math.log10(freq) - logMin) / logRange) * width
-    const v = (data[i] + 100) / 100 // Range -100dB to 0dB
-    const y = height - (Math.max(0, Math.min(1, v)) * (height - 40) + 20) // Leave padding for clean edges
+    const v = (data[i] + 100) / 100
+    const y = height - (Math.max(0, Math.min(1, v)) * (height - 40) + 20)
     
     if (firstPoint) {
       ctx.moveTo(x, y)
@@ -58,7 +57,6 @@ function renderSpectrum(
   }
   ctx.stroke()
 
-  // Draw area color gradient under line
   if (!firstPoint && data.length > 0) {
     ctx.lineTo(width, height)
     ctx.lineTo(0, height)
@@ -71,7 +69,6 @@ function renderSpectrum(
 }
 
 function drawGrid(ctx: CanvasRenderingContext2D, width: number, height: number, isLight: boolean) {
-  // Semi-transparent grid lines
   ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.04)'
   ctx.lineWidth = 1
   
@@ -86,7 +83,6 @@ function drawGrid(ctx: CanvasRenderingContext2D, width: number, height: number, 
     ctx.lineTo(x, height)
     ctx.stroke()
 
-    // Technical minimal grid label
     ctx.fillStyle = isLight ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.3)'
     ctx.font = '9px "JetBrains Mono", monospace'
     const label = f >= 1000 ? `${f/1000}kHz` : `${f}Hz`
@@ -104,11 +100,8 @@ export const ProfessionalSpectrum = ({
   const [settings, setSettings] = useState<FreqLensSettings>(loadSettings)
   const lastTimeRef = useRef(performance.now())
   const framesRef = useRef(0)
-  
-  // DSP envelope hold to prevent rapid state flickering (1.5-second hold time)
   const activeHoldFramesRef = useRef(0)
 
-  // Reload settings when applied from SettingsPanel (same-tab polling + instant event)
   useEffect(() => {
     const refresh = () => setSettings(loadSettings())
     window.addEventListener('freqlens-settings-changed', refresh)
@@ -136,7 +129,6 @@ export const ProfessionalSpectrum = ({
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Dynamic HDPI Retina Scaling
     const rect = canvas.getBoundingClientRect()
     const W = rect.width || 800
     const H = rect.height || 400
@@ -153,7 +145,6 @@ export const ProfessionalSpectrum = ({
       const dataArray = new Float32Array(analyser.frequencyBinCount)
       analyser.getFloatFrequencyData(dataArray)
       
-      // Determine if there is active signal (any bin > -95dB)
       let silent = true
       for (let i = 0; i < dataArray.length; i++) {
         if (dataArray[i] > -95 && dataArray[i] !== -Infinity) {
@@ -163,7 +154,6 @@ export const ProfessionalSpectrum = ({
       }
 
       if (!silent) {
-        // Reset hold to 90 frames (~1.5 seconds at 60fps)
         activeHoldFramesRef.current = 90
       } else if (activeHoldFramesRef.current > 0) {
         activeHoldFramesRef.current--
@@ -184,7 +174,6 @@ export const ProfessionalSpectrum = ({
       renderSpectrum(ctx, dataArray, W, H, { primary: color }, isLight)
     } else {
       const isLight = document.documentElement.getAttribute('data-theme') === 'light'
-      // Offline fallback: clear and draw grid lines so canvas is NEVER black!
       ctx.clearRect(0, 0, W, H)
       drawGrid(ctx, W, H, isLight)
       activeHoldFramesRef.current = 0
@@ -201,10 +190,7 @@ export const ProfessionalSpectrum = ({
         className="w-full h-full block"
       />
       
-      {/* Floating Precision Meters & Status panels */}
       <div className="absolute top-4 left-4 flex flex-wrap gap-2 pointer-events-none select-none z-20">
-        
-        {/* Core telemetry */}
         <div className="bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/5 text-[9px] font-mono text-text-soft flex items-center gap-2">
           <Activity className="w-3.5 h-3.5 text-accent animate-pulse" />
           <span>FPS: {fps > 0 ? fps : '--'}</span>
@@ -216,7 +202,6 @@ export const ProfessionalSpectrum = ({
           <span className="text-accent font-bold uppercase">Main Thread</span>
         </div>
 
-        {/* Signal Status Badge */}
         <div className="bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/5 text-[9px] font-mono flex items-center gap-2">
           <span className={`w-1.5 h-1.5 rounded-full ${isSilent ? 'bg-accent animate-pulse shadow-[0_0_8px_var(--accent)]' : 'bg-success animate-ping shadow-[0_0_8px_rgba(48,209,88,0.6)]'}`} />
           <span className={isSilent ? 'text-text-muted font-bold' : 'text-success font-black'}>
@@ -224,7 +209,6 @@ export const ProfessionalSpectrum = ({
           </span>
         </div>
 
-        {/* Smart acoustic signal analyzer advisory warning banner */}
         {feedback.length > 0 && !isSilent && (
           <div className={`bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-xl border text-[9px] font-mono flex items-center gap-2 ${feedback[0].type === 'warning' ? 'text-accent border-accent/25' : 'text-blue-400 border-blue-500/25'}`}>
             <Radio className="w-3.5 h-3.5" />
@@ -233,9 +217,7 @@ export const ProfessionalSpectrum = ({
         )}
       </div>
       
-      {/* Dynamic watermarks */}
       <div className="absolute top-4 right-4 pointer-events-none select-none mono text-[8px] uppercase tracking-widest text-text-muted flex items-center gap-1.5 z-20"><Cpu className="w-3.5 h-3.5" /><span>Nodo FreqLens RTA_PRO</span></div>
-      </div>
-
+    </div>
   )
 }
