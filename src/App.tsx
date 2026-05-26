@@ -14,7 +14,6 @@ import { LandingPage } from './features/dashboard/LandingPage'
 import { DashboardPage } from './features/dashboard/DashboardPage'
 import DocumentationPage from './features/docs/DocumentationPage'
 
-
 import { GlassPanel } from './ui/GlassPanel'
 
 type Page = 'landing' | 'app'
@@ -25,6 +24,7 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [eqUpdateKey, setEqUpdateKey] = useState(0)
   const [engineRunning, setEngineRunning] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false) // ← añadido
 
   // Initialize theme on mount
   useEffect(() => {
@@ -97,6 +97,7 @@ function App() {
       setActiveTab={setActiveTab}
       engineRunning={engineRunning}
       toggleEngine={handleToggleEngine}
+      onSettingsClick={() => setSettingsOpen(!settingsOpen)} // ← añadido
     >
       {/* ── Tabs Router ── */}
       {activeTab === 'analyzer' && (
@@ -168,7 +169,7 @@ function App() {
           <div className="lg:col-span-3 h-[450px] lg:h-[520px] relative">
             <EQVisualizer key={eqUpdateKey} />
           </div>
-          
+
           {/* Right Side: Expanded Presets & Calibrated spaces list (NO SCROLL!) */}
           <div className="lg:col-span-1 h-auto flex flex-col">
             <EQPresets onPresetApply={() => setEqUpdateKey((n) => n + 1)} />
