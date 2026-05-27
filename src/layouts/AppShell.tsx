@@ -9,6 +9,7 @@ interface AppShellProps {
   setActiveTab: (tab: TabId) => void
   engineRunning: boolean
   toggleEngine: () => void
+  onSettingsClick: () => void
 }
 
 export function AppShell({
@@ -17,6 +18,7 @@ export function AppShell({
   setActiveTab,
   engineRunning,
   toggleEngine,
+  onSettingsClick,
 }: AppShellProps) {
   const tabLabels: Record<TabId, string> = {
     analyzer: 'Analizador Espectral',
@@ -36,7 +38,7 @@ export function AppShell({
 
       {/* Main Structural Flex Wrapper */}
       <div className="flex w-full min-h-screen relative z-10">
-        {/* Sidebar Component */}
+        {/* Sidebar / Mobile Bottom Nav */}
         <Sidebar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -46,14 +48,15 @@ export function AppShell({
 
         {/* Content Shell */}
         <div className="flex-1 min-h-screen flex flex-col overflow-hidden">
-          {/* Topbar Component */}
+          {/* Topbar */}
           <Topbar
             engineRunning={engineRunning}
             toggleEngine={toggleEngine}
             activeTabLabel={tabLabels[activeTab]}
+            onSettingsClick={onSettingsClick}
           />
 
-          {/* Workspace container */}
+          {/* Workspace — extra padding-bottom on mobile so content clears the bottom nav */}
           <Workspace>{children}</Workspace>
         </div>
       </div>

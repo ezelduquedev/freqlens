@@ -4,7 +4,7 @@ import { AdaptiveEQControls } from '../eq/AdaptiveEQControls'
 import { EQPresets } from '../eq/EQPresets'
 import { GlassPanel } from '../../ui/GlassPanel'
 import { RoomProfileStorage } from '../../core/audio/RoomProfileStorage'
-import { loadSettings } from '../settings/settingsCore'
+import { loadSettings } from '../settings/SettingsPanel'
 import { useState, useEffect } from 'react'
 import { RMSMeter } from './RMSMeter'
 
@@ -32,7 +32,7 @@ export function DashboardPage({ onRunWizard, onUpdateEQ }: DashboardPageProps) {
   }, [onUpdateEQ])
 
   return (
-    <div className="flex flex-col lg:grid lg:grid-cols-4 gap-3 h-[calc(100vh-112px)] min-h-0 fade-in select-none">
+    <div className="flex flex-col lg:grid lg:grid-cols-4 gap-3 lg:h-[calc(100vh-112px)] min-h-0 fade-in select-none">
       <div className="lg:col-span-3 flex flex-col gap-2 min-h-0 h-full">
         <div className="flex-grow min-h-0 relative rounded-2xl overflow-hidden border border-border-custom bg-black/20">
           <ProfessionalSpectrum />
